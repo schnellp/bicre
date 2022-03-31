@@ -118,7 +118,6 @@ expect_cum_weibull_tvc_inverse <- function(m,
                                            k = shape, b = scale^(-shape)) {
 
   stopifnot(m >= 0)
-  stopifnot(length(m) == 1)
   stopifnot(length(lin_pred) == length(t_breaks))
 
   m_breaks <- cumsum(diff(c(0, expect_cum_weibull(t_breaks, k = k, b = b))) * exp(lin_pred))
@@ -131,4 +130,38 @@ expect_cum_weibull_tvc_inverse <- function(m,
 
     ((m - c(0, m_breaks)[left_index]) / (b * exp(lin_pred[left_index])) + t_left^k)^(1 / k)
   })
+}
+
+#' @title Simulate non-homogeneous Poisson process via inversion
+#'
+#' @param t_start Start time of interval on which to simulate.
+#' @param t_end End time of interval on which to simulate.
+#' @param expect_cum_FUN Cumulative expected event count function.
+#'                       Expected to be vectorized.
+#' @param expect_cum_inverse_FUN Inverse cumulative expected event count function.
+#'                               Expected to be vectorized.
+#' @param ... Additional arguments passed to \code{expect_cum_FUN} and
+#'            \code{expect_cum_inverse_FUN}
+#'
+#' @return A sorted vector of event times simulated from the specified process.
+#'
+#' @examples
+#' simulate_nonhomog_inversion(
+#'   t_start = 0, t_end = 100,
+#'   expect_cum_FUN = expect_cum_weibull_tvc,
+#'   expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse,
+#'   k = 2, b = 1,
+#'   t_breaks = c(50, 100),
+#'   lin_pred = c(log(10), log(2)))
+simulate_nonhomog_inversion <- function(t_start, t_end,
+                                        expect_cum_FUN, expect_cum_inverse_FUN,
+                                        ...) {
+
+  m_start <- expect_cum_FUN(t_start, ...)
+  m_end <- expect_cum_FUN(t_end, ...)
+
+  N <- rpois(1, lambda = m_end - m_start)
+  z <- sort(runif(N, min = m_start, max = m_end))
+
+  expect_cum_inverse_FUN(z, ...)
 }

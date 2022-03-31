@@ -95,3 +95,35 @@ test_that("expect_cum_weibull_inverse vectorized correctly", {
     )
   )
 })
+
+test_that("simulate_nonhomog_inversion simulates correctly", {
+  set.seed(0)
+
+  z <- simulate_nonhomog_inversion(
+    t_start = 0, t_end = 100,
+    expect_cum_FUN = expect_cum_weibull_tvc,
+    expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse,
+    k = 2, b = 1,
+    t_breaks = c(50, 100),
+    lin_pred = c(log(10), log(2))
+  )
+
+  expect_equal(
+    expect_cum_weibull_tvc(50,
+                           lin_pred = c(log(10), log(2)),
+                           t_breaks = c(50, 100),
+                           k = 2, b = 1),
+    sum(z < 50),
+    tolerance = 0.01
+  )
+
+  expect_equal(
+    expect_cum_weibull_tvc(50,
+                           lin_pred = c(log(10), log(2)),
+                           t_breaks = c(50, 100),
+                           k = 2, b = 1),
+    sum(z < 50),
+    tolerance = 0.01
+  )
+
+})
