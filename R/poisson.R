@@ -72,17 +72,18 @@ expect_cum_weibull_tvc <- function(t,
                                    shape = 1, scale = 1,
                                    k = shape, b = scale^(-shape)) {
 
-  stopifnot(t >= 0)
-  stopifnot(length(t) == 1)
-  stopifnot(t <= tail(t_breaks, 1))
+  stopifnot(all(t >= 0))
+  stopifnot(all(t <= tail(t_breaks, 1)))
   stopifnot(length(lin_pred) == length(t_breaks))
 
-  t_breaks <- t_breaks[1 : (sum(t_breaks < t) + 1)]
-  lin_pred <- lin_pred[1 : length(t_breaks)]
+  sapply(t, function(t) {
+    t_breaks <- t_breaks[1 : (sum(t_breaks < t) + 1)]
+    lin_pred <- lin_pred[1 : length(t_breaks)]
 
-  t_breaks[length(t_breaks)] <- t
+    t_breaks <- c(t_breaks[-length(t_breaks)], t)
 
-  sum(diff(c(0, expect_cum_weibull(t_breaks, k = k, b = b))) * exp(lin_pred))
+    sum(diff(c(0, expect_cum_weibull(t_breaks, k = k, b = b))) * exp(lin_pred))
+  })
 }
 
 #' @title Inverse of Weibull expected cumulative event count with time-varying covariates
@@ -124,10 +125,10 @@ expect_cum_weibull_tvc_inverse <- function(m,
 
   stopifnot(m <= tail(m_breaks, 1))
 
-  left_index <- which.max(m < m_breaks)
-  t_left <- c(0, t_breaks)[left_index]
+  sapply(m, function(m) {
+    left_index <- which.max(m < m_breaks)
+    t_left <- c(0, t_breaks)[left_index]
 
-  ((m - c(0, m_breaks)[left_index]) / (b * exp(lin_pred[left_index])) + t_left^k)^(1 / k)
+    ((m - c(0, m_breaks)[left_index]) / (b * exp(lin_pred[left_index])) + t_left^k)^(1 / k)
+  })
 }
-
-

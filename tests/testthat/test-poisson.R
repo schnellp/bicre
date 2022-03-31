@@ -27,6 +27,19 @@ test_that("expect_cum_tvc validates input", {
   expect_error(expect_cum_weibull_tvc(3, lin_pred = 1 : 4, t_breaks = 1 : 5))
 })
 
+test_that("expect_cum_weibull_tvc vectorized correctly", {
+  lin_pred <- 1 : 5
+  t_breaks <- 1 : 5
+
+  expect_equal(
+    expect_cum_weibull_tvc(c(1.5, 4), lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
+    c(
+      expect_cum_weibull_tvc(1.5, lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
+      expect_cum_weibull_tvc(4, lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3)
+    )
+  )
+})
+
 test_that("expect_cum_weibull_tvc_inverse inverts correctly", {
   lin_pred <- 1 : 5
   t_breaks <- 1 : 5
@@ -70,5 +83,15 @@ test_that("expect_cum_weibull_inverse inverts correctly", {
   expect_equal(
     expect_cum_weibull_inverse(Inf),
     Inf
+  )
+})
+
+test_that("expect_cum_weibull_inverse vectorized correctly", {
+  expect_equal(
+    expect_cum_weibull_inverse(c(30, 800), k = 2, b = 3),
+    c(
+      expect_cum_weibull_inverse(c(30), k = 2, b = 3),
+      expect_cum_weibull_inverse(c(800), k = 2, b = 3)
+    )
   )
 })
