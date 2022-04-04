@@ -132,6 +132,71 @@ expect_cum_weibull_tvc_inverse <- function(m,
   })
 }
 
+#' @title Truncated Poisson generation
+#'
+#' @description
+#' Generates random draws from un-, left-, right-, or double-truncated
+#' Poisson distribution with parameter \code{lambda} truncated to \code{[min, max]}
+#' (inclusive). The Poisson distribution is parameterized identically to
+#' \code{stats::rpois}, but \code{lambda} cannot be a vector.
+#'
+#' @param n Number of random values to return.
+#' @param lambda Non-negative (scalar) mean of un-truncated distribution.
+#' @param min The minimum allowed return value.
+#' @param max The maximum allowed return value.
+#' @param parallel_draws For left-only-truncated draws, the number of
+#'                       simultaneous draws by the rejection sampler.
+#' @param max_tries For left-only-truncated draws, the maximum number of
+#'                  iterations of the rejection sampler.
+#'
+#' @return A vector of draws.
+#'
+#' @examples
+#' rpois_trunc(100, lambda = 1)
+#' rpois_trunc(100, lambda = 1, min = 1)
+#' rpois_trunc(100, lambda = 1, max = 10)
+#' rpois_trunc(100, lambda = 1, min = 1, max = 10)
+rpois_trunc <- function(n, lambda, min = 0, max = Inf,
+                        parallel_draws = n * 2, max_tries = 1e3) {
+
+  stopifnot(length(lambda) == 1)
+  stopifnot(lambda >= 0)
+
+  if (lambda == 0) {
+    if (min > 0) {
+      stop("Improper distribution (lambda = 0, min > 0).")
+    } else {
+      return(rep(0, n))
+    }
+  }
+
+  if (max < Inf) {
+    return(
+      sample(min : max, size = n, replace = TRUE,
+             prob = dpois(min : max, lambda = lambda))
+      )
+  } else if (min > 0) {
+    x <- numeric(0)
+    for (i in 1 : max_tries) {
+      m <- max(ceiling(min - 1 - lambda), 0)
+      y <- rpois(parallel_draws, lambda)
+      x_pro <- m + y
+      accept_prob <- exp(lfactorial(y) - lfactorial(x_pro) + lfactorial(min) -
+                           lfactorial(min - m)) * as.numeric(x_pro >= min)
+
+      x <- c(x, x_pro[as.logical(rbinom(parallel_draws, 1, accept_prob))])
+
+      if (length(x) >= n) {
+        return(x[1 : n])
+      }
+    }
+
+    stop("Maximum number of rejection sampler iterations reached.")
+  } else {
+    return(rpois(n, lambda = lambda))
+  }
+}
+
 #' @title Simulate non-homogeneous Poisson process via inversion
 #'
 #' @param t_start Start time of interval on which to simulate.

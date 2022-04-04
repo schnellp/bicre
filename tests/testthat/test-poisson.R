@@ -127,3 +127,55 @@ test_that("simulate_nonhomog_inversion simulates correctly", {
   )
 
 })
+
+test_that("rpois_trunc draws from correct un-truncated distribution", {
+  set.seed(0)
+
+  x_test <- rpois_trunc(10000, lambda = 1)
+  x_ref <- rpois(10000, lambda = 1)
+
+  expect_equal(mean(x_test == 4), mean(x_ref == 4), tolerance = 0.05)
+})
+
+test_that("rpois_trunc draws from correct left-truncated distribution", {
+  set.seed(0)
+
+  x_test <- rpois_trunc(10000, lambda = 1, min = 1)
+  x_ref <- rpois(10000, lambda = 1)
+  x_ref <- x_ref[x_ref >= 1]
+
+  expect_equal(sum(x_test == 0), 0)
+  expect_equal(mean(x_test == 4), mean(x_ref == 4), tolerance = 0.05)
+})
+
+test_that("rpois_trunc draws from correct right-truncated distribution", {
+  set.seed(0)
+
+  x_test <- rpois_trunc(10000, lambda = 1, max = 10)
+  x_ref <- rpois(10000, lambda = 1)
+  x_ref <- x_ref[x_ref <= 10]
+
+  expect_equal(sum(x_test > 10), 0)
+  expect_equal(mean(x_test == 4), mean(x_ref == 4), tolerance = 0.05)
+})
+
+test_that("rpois_trunc draws from correct double-truncated distribution", {
+  set.seed(0)
+
+  x_test <- rpois_trunc(10000, lambda = 1, min = 1, max = 10)
+  x_ref <- rpois(10000, lambda = 1)
+  x_ref <- x_ref[x_ref >= 1 & x_ref <= 10]
+
+  expect_equal(sum(x_test < 1 | x_test > 10), 0)
+  expect_equal(mean(x_test == 4), mean(x_ref == 4), tolerance = 0.05)
+})
+
+test_that("rpois_trunc handles edge cases correctly", {
+  set.seed(0)
+
+  x <- rpois_trunc(n = 10, lambda = 0)
+  expect_true(all(x == 0))
+  expect_length(x, 10)
+
+  expect_error(rpois_trunc(n = 10, lambda = 0, min = 1))
+})
