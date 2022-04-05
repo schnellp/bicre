@@ -149,6 +149,11 @@ expect_cum_weibull_tvc_inverse <- function(m,
 #' @param max_tries For left-only-truncated draws, the maximum number of
 #'                  iterations of the rejection sampler.
 #'
+#' @details
+#' If \code{max < Inf} then \code{sample} is used to draw from the finite sample space.
+#' If \code{min > 0} and \code{max == Inf} then the improved rejection sampler
+#' of Geyer (2021) is used.
+#'
 #' @return A vector of draws.
 #'
 #' @examples
@@ -156,6 +161,12 @@ expect_cum_weibull_tvc_inverse <- function(m,
 #' rpois_trunc(100, lambda = 1, min = 1)
 #' rpois_trunc(100, lambda = 1, max = 10)
 #' rpois_trunc(100, lambda = 1, min = 1, max = 10)
+#'
+#' @references
+#' Geyer, CJ. "Lower-Truncated Poisson and Negative Binomial Distributions"
+#' 2021.
+#' \link{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
+#'
 rpois_trunc <- function(n, lambda, min = 0, max = Inf,
                         parallel_draws = n * 2, max_tries = 1e3) {
 
@@ -205,8 +216,15 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 #'                       Expected to be vectorized.
 #' @param expect_cum_inverse_FUN Inverse cumulative expected event count function.
 #'                               Expected to be vectorized.
+#' @param count_min Minimum number of events.
+#' @param count_max Maximum number of events.
 #' @param ... Additional arguments passed to \code{expect_cum_FUN} and
 #'            \code{expect_cum_inverse_FUN}
+#'
+#' @details
+#' Arguments \code{count_min} and \code{count_max} defines constraints on
+#' realizations of the Poisson process. Probability law of the constrained
+#' process is the same as would be derived via rejection sampling.
 #'
 #' @return A sorted vector of event times simulated from the specified process.
 #'
@@ -220,12 +238,14 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 #'   lin_pred = c(log(10), log(2)))
 simulate_nonhomog_inversion <- function(t_start, t_end,
                                         expect_cum_FUN, expect_cum_inverse_FUN,
+                                        count_min = 0, count_max = Inf,
                                         ...) {
 
   m_start <- expect_cum_FUN(t_start, ...)
   m_end <- expect_cum_FUN(t_end, ...)
 
-  N <- rpois(1, lambda = m_end - m_start)
+  N <- rpois_trunc(1, lambda = m_end - m_start,
+                   min = count_min, max = count_max)
   z <- sort(runif(N, min = m_start, max = m_end))
 
   expect_cum_inverse_FUN(z, ...)

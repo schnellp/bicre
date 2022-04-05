@@ -9,6 +9,8 @@ simulate_nonhomog_inversion(
   t_end,
   expect_cum_FUN,
   expect_cum_inverse_FUN,
+  count_min = 0,
+  count_max = Inf,
   ...
 )
 }
@@ -23,6 +25,10 @@ Expected to be vectorized.}
 \item{expect_cum_inverse_FUN}{Inverse cumulative expected event count function.
 Expected to be vectorized.}
 
+\item{count_min}{Minimum number of events.}
+
+\item{count_max}{Maximum number of events.}
+
 \item{...}{Additional arguments passed to \code{expect_cum_FUN} and
 \code{expect_cum_inverse_FUN}}
 }
@@ -31,6 +37,11 @@ A sorted vector of event times simulated from the specified process.
 }
 \description{
 Simulate non-homogeneous Poisson process via inversion
+}
+\details{
+Arguments \code{count_min} and \code{count_max} defines constraints on
+realizations of the Poisson process. Probability law of the constrained
+process is the same as would be derived via rejection sampling.
 }
 \examples{
 simulate_nonhomog_inversion(

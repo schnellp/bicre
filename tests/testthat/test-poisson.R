@@ -128,6 +128,35 @@ test_that("simulate_nonhomog_inversion simulates correctly", {
 
 })
 
+test_that("simulate_nonhomog_inversion respects bounds", {
+  expect_lte(max(
+    simulate_nonhomog_inversion(
+      t_start = 1, t_end = 10,
+      expect_cum_FUN = expect_cum_weibull,
+      expect_cum_inverse_FUN = expect_cum_weibull_inverse,
+      k = 2, b = 1,
+      count_min = 0, count_max = 10)
+    ), 10)
+
+  expect_gte(min(
+    simulate_nonhomog_inversion(
+      t_start = 1, t_end = 10,
+      expect_cum_FUN = expect_cum_weibull,
+      expect_cum_inverse_FUN = expect_cum_weibull_inverse,
+      k = 2, b = 1,
+      count_min = 0, count_max = 10)
+  ), 1)
+
+  expect_gte(min(
+    simulate_nonhomog_inversion(
+      t_start = 1, t_end = 10,
+      expect_cum_FUN = expect_cum_weibull,
+      expect_cum_inverse_FUN = expect_cum_weibull_inverse,
+      k = 2, b = 1,
+      count_min = 0, count_max = Inf)
+  ), 1)
+})
+
 test_that("rpois_trunc draws from correct un-truncated distribution", {
   set.seed(0)
 

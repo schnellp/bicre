@@ -37,9 +37,20 @@ Poisson distribution with parameter \code{lambda} truncated to \code{[min, max]}
 (inclusive). The Poisson distribution is parameterized identically to
 \code{stats::rpois}, but \code{lambda} cannot be a vector.
 }
+\details{
+If \code{max < Inf} then \code{sample} is used to draw from the finite sample space.
+If \code{min > 0} and \code{max == Inf} then the improved rejection sampler
+of Geyer (2021) is used.
+}
 \examples{
 rpois_trunc(100, lambda = 1)
 rpois_trunc(100, lambda = 1, min = 1)
 rpois_trunc(100, lambda = 1, max = 10)
 rpois_trunc(100, lambda = 1, min = 1, max = 10)
+
+}
+\references{
+Geyer, CJ. "Lower-Truncated Poisson and Negative Binomial Distributions"
+2021.
+\link{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
 }
