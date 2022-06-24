@@ -41,6 +41,75 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
     select(-.index)
 }
 
+#' @title Fill in gaps between intervals
+#'
+#' @description Creates additional data rows representing
+#'              gaps between existing intervals.
+#'
+#' @param data A data frame.
+#' @param id Group identifier in \code{data}.
+#' @param t_start_var The column in \code{data}
+#'                    storing the start of each interval.
+#' @param t_end_var The column in \code{data}
+#'                  storing the end of each interval.
+#' @param var The column in \code{data} containing data for each interval.
+#' @param fill The value of \code{var} that should be used for
+#'             newly added rows.
+#'
+#' @return A data frame containing the original intervals plus
+#'         the intervals implied by the gaps between them.
+#'
+#' @export
+complete_interval_data <- function(data, id, t_start_var, t_end_var, var,
+                                   fill = NA) {
+  var_name <- as.character(as.list(match.call()[-1])$var)
+
+  data_list <- data %>% split(f = data %>% select({{ id }}))
+  data_filled_list <- list()
+
+  ids <- data %>% pull({{ id }}) %>% unique() %>% sort()
+
+  for (i in ids) {
+
+    nodes <- data_list[[i]] %>%
+      select({{ t_start_var }}, {{ t_end_var }}) %>%
+      unlist() %>%
+      unique() %>%
+      sort()
+
+    data_filled_list[[i]] <- data.frame(
+      t_start = head(nodes, -1),
+      t_end = tail(nodes, -1)
+    ) %>%
+      mutate({{ id }} := i, .before = t_start) %>%
+      mutate({{ var }} := fill)
+
+    for (j in 1 : (length(nodes) - 1)) {
+      node_start <- nodes[j]
+      node_end <- nodes[j + 1]
+
+      rows <- data_list[[i]] %>%
+        filter({{ t_start_var }} <= node_start, {{ t_end_var }} >= node_end)
+
+      if (nrow(rows) == 1) {
+        data_filled_list[[i]][j, var_name] <- rows[1, var_name]
+      } else if (nrow(rows) > 1) {
+        print(rows)
+        print(nodes)
+        print(node_start)
+        print(node_end)
+        stop("Multiple rows covering interval")
+      }
+    }
+
+    rownames(data_filled_list[[i]]) <- NULL
+  }
+
+
+
+  do.call(rbind.data.frame, data_filled_list)
+}
+
 combine_variables <- function() {
 
 }
