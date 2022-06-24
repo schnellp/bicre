@@ -1,0 +1,52 @@
+#' @title Collapse redundant intervals in dataset
+#'
+#' @description Combines adjacent or overlapping intervals with identical
+#'              data into one interval.
+#'
+#' @param data A data frame.
+#' @param t_start_var A string indicating the name of the column in \code{data}
+#'                    storing the start of each interval.
+#' @param t_end_var A string indicating the name of the column in \code{data}
+#'                  storing the start of each interval.
+#'
+#' @return A data frame in which adjacent or overlapping intervals with
+#'         identical data combined into one interval.
+#'
+#' @examples
+#' data_overlap_ints <- data.frame(
+#' id = c(1, 1, 1, 1,
+#'        2, 2, 2, 2),
+#' t_start = c(0, 4, 7, 21,
+#'             7, 14, 21, 28),
+#' t_end = c(7, 11, 14, 28,
+#'           14, 21, 28, 35),
+#' med = c("A", "A", "B", "B",
+#'         "A", "A", "A", "A")
+#' )
+#'
+#' data_overlap_ints %>% collapse_interval_data("t_start", "t_end")
+#'
+#' @export
+collapse_interval_data <- function(data, t_start_var, t_end_var) {
+  data %>%
+    arrange({{ t_start_var }}) %>%
+    group_by(across(-all_of(c(t_start_var, t_end_var)))) %>%
+    mutate(.index = c(0,
+                      cumsum(as.numeric(lead(!!sym(t_start_var))) >
+                               cummax(as.numeric(!!sym(t_end_var))))[-n()])) %>%
+    group_by(across(-all_of(c(t_start_var, t_end_var)))) %>%
+    summarize({{ t_start_var }} := min(!!sym(t_start_var)),
+              {{ t_end_var }} := max(!!sym(t_end_var), na.rm = TRUE),
+              .groups = "drop") %>%
+    select(-.index)
+}
+
+combine_variables <- function() {
+
+}
+
+
+co_events <- function(data_covariates, data_events,
+                      id, t_start, t_end, e_min, e_max, e_type = NULL) {
+
+}
