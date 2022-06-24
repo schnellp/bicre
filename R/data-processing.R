@@ -47,7 +47,6 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
 #'              gaps between existing intervals.
 #'
 #' @param data A data frame.
-#' @param id Group identifier in \code{data}.
 #' @param t_start_var The column in \code{data}
 #'                    storing the start of each interval.
 #' @param t_end_var The column in \code{data}
@@ -61,72 +60,89 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
 #'         the intervals implied by the gaps between them.
 #'
 #' @export
+#'
+#'
 complete_interval_data <- function(data, id, t_start_var, t_end_var,
                                    fill = NA, new_nodes = c()) {
-
-  var_names <- data %>%
-    select(-c({{ id }}, {{ t_start_var }}, {{ t_end_var }})) %>%
-    colnames()
 
   data_list <- data %>% split(f = data %>% select({{ id }}))
   data_filled_list <- list()
 
-  ids <- data %>% pull({{ id }}) %>% unique() %>% sort()
+  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
 
   for (i in ids) {
+    id_fill_list <- list()
+    id_fill_list[[deparse(substitute(id))]] <- i
 
-    nodes <- data_list[[i]] %>%
-      select({{ t_start_var }}, {{ t_end_var }}) %>%
-      unlist() %>%
-      c(new_nodes) %>%
-      unique() %>%
-      sort()
-
-    data_filled_list[[i]] <- data.frame(
-      t_start = head(nodes, -1),
-      t_end = tail(nodes, -1)
-    ) %>%
-      mutate({{ id }} := i, .before = t_start)
-
-    for (var_name in var_names) {
-      if (!is.list(fill)) {
-        fill_val <- fill
-      } else if (is.null(fill[[var_name]])) {
-        fill_val <- NA
-      } else {
-        fill_val <- fill[[var_name]]
-      }
-
-      data_filled_list[[i]] <-
-        data_filled_list[[i]] %>%
-        mutate(!!sym(var_name) := fill_val)
-
-
-      for (j in 1 : (length(nodes) - 1)) {
-        node_start <- nodes[j]
-        node_end <- nodes[j + 1]
-
-        rows <- data_list[[i]] %>%
-          filter({{ t_start_var }} <= node_start, {{ t_end_var }} >= node_end)
-
-        if (nrow(rows) == 1) {
-          data_filled_list[[i]][j, var_name] <- rows[1, var_name]
-        } else if (nrow(rows) > 1) {
-          print(rows)
-          print(nodes)
-          print(node_start)
-          print(node_end)
-          stop("Multiple rows covering interval")
-        }
-      }
-    }
-
-    rownames(data_filled_list[[i]]) <- NULL
+    data_filled_list[[i]] <-
+      data_list[[i]] %>%
+      complete_interval_data_single(
+        t_start_var = {{ t_start_var }},
+        t_end_var = {{ t_end_var }},
+        fill = c(fill, id_fill_list),
+        new_nodes = new_nodes
+      )
   }
 
-
-
   do.call(rbind.data.frame, data_filled_list)
+}
+
+complete_interval_data_single <- function(data, t_start_var, t_end_var,
+                                          fill = NA, new_nodes = c()) {
+
+  var_names <- data %>%
+    select(-c({{ t_start_var }}, {{ t_end_var }})) %>%
+    colnames()
+
+
+  nodes <- data %>%
+    select({{ t_start_var }}, {{ t_end_var }}) %>%
+    unlist() %>%
+    c(new_nodes) %>%
+    unique() %>%
+    sort()
+
+  data_filled <- data.frame(
+    t_start = head(nodes, -1),
+    t_end = tail(nodes, -1)
+  )
+
+  for (var_name in var_names) {
+    if (!is.list(fill)) {
+      fill_val <- fill
+    } else if (is.null(fill[[var_name]])) {
+      fill_val <- NA
+    } else {
+      fill_val <- fill[[var_name]]
+    }
+
+    data_filled <-
+      data_filled %>%
+      mutate(!!sym(var_name) := fill_val)
+
+
+    for (j in 1 : (length(nodes) - 1)) {
+      node_start <- nodes[j]
+      node_end <- nodes[j + 1]
+
+      rows <- data %>%
+        filter({{ t_start_var }} <= node_start, {{ t_end_var }} >= node_end)
+
+      if (nrow(rows) == 1) {
+        data_filled[j, var_name] <- rows[1, var_name]
+      } else if (nrow(rows) > 1) {
+        print(rows)
+        print(nodes)
+        print(node_start)
+        print(node_end)
+        stop("Multiple rows covering interval")
+      }
+    }
+  }
+
+  rownames(data_filled) <- NULL
+
+  data_filled
 }
 
 combine_variables <- function() {
