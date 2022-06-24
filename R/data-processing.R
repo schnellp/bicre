@@ -54,13 +54,15 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
 #'                  storing the end of each interval.
 #' @param fill A named list specifying the value of each remaining variable
 #'             that should be used for newly added rows.
+#' @param new_nodes A vector of new interval endpoints that should
+#'                  be added regardless of whether they appear in the data.
 #'
 #' @return A data frame containing the original intervals plus
 #'         the intervals implied by the gaps between them.
 #'
 #' @export
 complete_interval_data <- function(data, id, t_start_var, t_end_var,
-                                   fill = NA) {
+                                   fill = NA, new_nodes = c()) {
 
   var_names <- data %>%
     select(-c({{ id }}, {{ t_start_var }}, {{ t_end_var }})) %>%
@@ -76,6 +78,7 @@ complete_interval_data <- function(data, id, t_start_var, t_end_var,
     nodes <- data_list[[i]] %>%
       select({{ t_start_var }}, {{ t_end_var }}) %>%
       unlist() %>%
+      c(new_nodes) %>%
       unique() %>%
       sort()
 
