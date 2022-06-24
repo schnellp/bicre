@@ -29,7 +29,7 @@
 #' @export
 collapse_interval_data <- function(data, t_start_var, t_end_var) {
   data %>%
-    arrange({{ t_start_var }}) %>%
+    arrange(!!sym(t_start_var)) %>%
     group_by(across(-all_of(c(t_start_var, t_end_var)))) %>%
     mutate(.index = c(0,
                       cumsum(as.numeric(lead(!!sym(t_start_var))) >
