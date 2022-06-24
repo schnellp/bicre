@@ -62,31 +62,6 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
 #' @export
 #'
 #'
-complete_interval_data <- function(data, id, t_start_var, t_end_var,
-                                   fill = NA, new_nodes = c()) {
-
-  data_list <- data %>% split(f = data %>% select({{ id }}))
-  data_filled_list <- list()
-
-  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
-
-  for (i in ids) {
-    id_fill_list <- list()
-    id_fill_list[[deparse(substitute(id))]] <- i
-
-    data_filled_list[[i]] <-
-      data_list[[i]] %>%
-      complete_interval_data_single(
-        t_start_var = {{ t_start_var }},
-        t_end_var = {{ t_end_var }},
-        fill = c(fill, id_fill_list),
-        new_nodes = new_nodes
-      )
-  }
-
-  do.call(rbind.data.frame, data_filled_list)
-}
-
 complete_interval_data_single <- function(data, t_start_var, t_end_var,
                                           fill = NA, new_nodes = c()) {
 
@@ -143,6 +118,91 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
   rownames(data_filled) <- NULL
 
   data_filled
+}
+
+complete_interval_data <- function(data, id, t_start_var, t_end_var,
+                                   fill = NA, new_nodes = c()) {
+
+  data_list <- data %>% split(f = data %>% select({{ id }}))
+  data_filled_list <- list()
+
+  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+
+  for (i in ids) {
+    id_fill_list <- list()
+    id_fill_list[[deparse(substitute(id))]] <- i
+
+    data_filled_list[[i]] <-
+      data_list[[i]] %>%
+      complete_interval_data_single(
+        t_start_var = {{ t_start_var }},
+        t_end_var = {{ t_end_var }},
+        fill = c(fill, id_fill_list),
+        new_nodes = new_nodes
+      )
+  }
+
+  do.call(rbind.data.frame, data_filled_list)
+}
+
+merge_interval_data_single <- function(data, new_data,
+                                       t_start_var, t_end_var, new_var,
+                                       fill = NA) {
+
+  nodes <- union(
+    data %>%
+      select(c({{ t_start_var }}, {{ t_end_var }})) %>%
+      unlist(),
+    new_data %>%
+      select(c({{ t_start_var }}, {{ t_end_var }})) %>%
+      unlist()
+  ) %>%
+    unique() %>%
+    sort()
+
+  temp_data <- new_data %>%
+    select(c({{ t_start_var }}, {{ t_end_var }}, {{ new_var }})) %>%
+    complete_interval_data_single(t_start_var = {{ t_start_var }},
+                                  t_end_var = {{ t_end_var }},
+                                  fill = fill,
+                                  new_nodes = nodes)
+
+  data <- data %>%
+    complete_interval_data_single(t_start_var = {{ t_start_var }},
+                                  t_end_var = {{ t_end_var }},
+                                  fill = fill,
+                                  new_nodes = nodes) %>%
+    mutate({{ new_var }} := temp_data %>% pull({{ new_var }}))
+
+  data
+}
+
+merge_interval_data <- function(data, new_data,
+                                id,
+                                t_start_var, t_end_var, new_var,
+                                fill = NA) {
+
+  data_list <- data %>% split(f = data %>% select({{ id }}))
+  data_merged_list <- list()
+
+  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+
+  for (i in ids) {
+    id_fill_list <- list()
+    id_fill_list[[deparse(substitute(id))]] <- i
+
+    data_merged_list[[i]] <-
+      data_list[[i]] %>%
+      merge_interval_data_single(
+        new_data = new_data,
+        t_start_var = {{ t_start_var }},
+        t_end_var = {{ t_end_var }},
+        new_var = {{ new_var }}
+        fill = c(fill, id_fill_list)
+      )
+  }
+
+  do.call(rbind.data.frame, data_merged_list)
 }
 
 combine_variables <- function() {
