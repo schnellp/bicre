@@ -105,14 +105,37 @@ test_that("merge_interval_data handles an id not appearing in new_data", {
     mutate(B = (med == "B")) %>%
     select(-med)
 
-  data_merged <- data_a %>%
-    merge_interval_data(new_data = data_b,
-                        id = id, t_start_var = t_start, t_end_var = t_end,
-                        new_var = B,
-                        fill = list("A" = FALSE,
-                                    "B" = FALSE))
+  expect_warning(
+    data_merged <- data_a %>%
+      merge_interval_data(new_data = data_b,
+                          id = id, t_start_var = t_start, t_end_var = t_end,
+                          new_var = B,
+                          fill = list("A" = FALSE,
+                                      "B" = FALSE))
+  )
 
   expect_equal(data_merged, data_merged_benchmark)
+})
+
+test_that("merge_interval_data warns when an id id appears in new_data but not data", {
+  data_a <- data_long %>%
+    filter(med == "A") %>%
+    mutate(A = (med == "A")) %>%
+    select(-med)
+
+  data_b <- data_long %>%
+    filter(med == "B") %>%
+    mutate(B = (med == "B")) %>%
+    select(-med)
+
+  expect_warning(
+    data_b %>%
+      merge_interval_data(new_data = data_a,
+                          id = id, t_start_var = t_start, t_end_var = t_end,
+                          new_var = A,
+                          fill = list("A" = FALSE,
+                                      "B" = FALSE))
+  )
 })
 
 test_that("merge_interval_data chains correctly", {
