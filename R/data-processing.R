@@ -41,25 +41,7 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
     select(-.index)
 }
 
-#' @title Fill in gaps between intervals
-#'
-#' @description Creates additional data rows representing
-#'              gaps between existing intervals.
-#'
-#' @param data A data frame.
-#' @param t_start_var The column in \code{data}
-#'                    storing the start of each interval.
-#' @param t_end_var The column in \code{data}
-#'                  storing the end of each interval.
-#' @param fill A named list specifying the value of each remaining variable
-#'             that should be used for newly added rows.
-#' @param new_nodes A vector of new interval endpoints that should
-#'                  be added regardless of whether they appear in the data.
-#'
-#' @return A data frame containing the original intervals plus
-#'         the intervals implied by the gaps between them.
-#'
-#' @export
+#' @title Single-id helper for \code{complete_interval_data}
 #'
 #'
 complete_interval_data_single <- function(data, t_start_var, t_end_var,
@@ -120,6 +102,27 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
   data_filled
 }
 
+#' @title Fill in gaps between intervals
+#'
+#' @description Creates additional data rows representing
+#'              gaps between existing intervals.
+#'
+#' @param data A data frame.
+#' @param t_start_var The column in \code{data}
+#'                    storing the start of each interval.
+#' @param t_end_var The column in \code{data}
+#'                  storing the end of each interval.
+#' @param fill A named list specifying the value of each remaining variable
+#'             that should be used for newly added rows.
+#' @param new_nodes A vector of new interval endpoints that should
+#'                  be added regardless of whether they appear in the data.
+#'
+#' @return A data frame containing the original intervals plus
+#'         the intervals implied by the gaps between them.
+#'
+#' @export
+#'
+#'
 complete_interval_data <- function(data, id, t_start_var, t_end_var,
                                    fill = NA, new_nodes = c()) {
 
@@ -145,6 +148,7 @@ complete_interval_data <- function(data, id, t_start_var, t_end_var,
   do.call(rbind.data.frame, data_filled_list)
 }
 
+#' @title Single-id helper for \code{merge_interval_data}
 merge_interval_data_single <- function(data, new_data,
                                        t_start_var, t_end_var, new_var,
                                        fill = NA) {
@@ -177,6 +181,27 @@ merge_interval_data_single <- function(data, new_data,
   merged_data
 }
 
+#' @title Merge new time-dependent variable into interval dataset
+#'
+#' @description Merges an additional column from a new dataset
+#'              into an existing interval dataset,
+#'              subdividing intervals as necessary.
+#'
+#' @param data A data frame.
+#' @param new_data A data frame containing the new variable to be merged.
+#' @param t_start_var The column in \code{data} and \code{new_data}
+#'                    storing the start of each interval.
+#' @param t_end_var The column in \code{data} and \code{new_data}
+#'                  storing the end of each interval.
+#' @param new_var The column in \code{new_data} to be merged into \code{data}.
+#' @param fill A named list specifying the value of each remaining variable
+#'             that should be used for newly added rows.
+#'
+#' @return A data frame containing the original columns of \code{data} plus
+#'         the new column from \code{new_data} with subdivided intervals
+#'         to accommodate all variables.
+#'
+#' @export
 merge_interval_data <- function(data, new_data,
                                 id,
                                 t_start_var, t_end_var, new_var,
@@ -187,14 +212,21 @@ merge_interval_data <- function(data, new_data,
   data_merged_list <- list()
 
   ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+  new_ids <- new_data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+
+  if (!all(new_ids %in% ids)) {
+    warning(paste("Ids in new_data missing from data and will be ignored:",
+                  paste0(setdiff(new_ids, ids), collapse = ", ")))
+  }
+
+  if (!all(ids %in% new_ids)) {
+    warning(paste("Ids in data missing from new_data and will be filled according to `fill` argument:",
+                  paste0(setdiff(ids, new_ids), collapse = ", ")))
+  }
 
   for (i in ids) {
     id_fill_list <- list()
     id_fill_list[[deparse(substitute(id))]] <- i
-
-    if (is.null(data_list[[i]])) {
-
-    }
 
     if (is.null(new_data_list[[i]])) {
       var_name <- as.character(substitute(new_var))
