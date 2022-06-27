@@ -65,3 +65,104 @@ test_that("collapse_interval_data is idempotent", {
 test_that("complete_interval_data is idempotent", {
 
 })
+
+###########################
+### merge_interval_data ###
+###########################
+
+data_long <- data.frame(
+  id = c(1, 1, 1,
+         2),
+  t_start = c(0, 7, 21,
+              7),
+  t_end = c(11, 14, 28,
+            35),
+  med = c("A", "B", "B",
+          "A")
+)
+
+data_merged_benchmark <- data.frame(
+  id = as.character(c(1, 1, 1, 1, 1,
+                      2)),
+  t_start = c(0, 7, 11, 14, 21,
+              7),
+  t_end = c(7, 11, 14, 21, 28,
+            35),
+  A = c(TRUE, TRUE, FALSE, FALSE, FALSE,
+        TRUE),
+  B = c(FALSE, TRUE, TRUE, FALSE, TRUE,
+        FALSE)
+)
+
+test_that("merge_interval_data handles an id not appearing in new_data", {
+  data_a <- data_long %>%
+    filter(med == "A") %>%
+    mutate(A = (med == "A")) %>%
+    select(-med)
+
+  data_b <- data_long %>%
+    filter(med == "B") %>%
+    mutate(B = (med == "B")) %>%
+    select(-med)
+
+  data_merged <- data_a %>%
+    merge_interval_data(new_data = data_b,
+                        id = id, t_start_var = t_start, t_end_var = t_end,
+                        new_var = B,
+                        fill = list("A" = FALSE,
+                                    "B" = FALSE))
+
+  expect_equal(data_merged, data_merged_benchmark)
+})
+
+test_that("merge_interval_data chains correctly", {
+  data_long <- data.frame(
+    id = "1",
+    t_start = c(8,
+                3, 6,
+                1, 5, 8),
+    t_end = c(9,
+              5, 8,
+              2, 6, 10),
+    med = c("A",
+            "B", "B",
+            "C", "C", "C")
+    )
+
+  data_merged_benchmark <- data.frame(
+    id = "1",
+    t_start = c(1, 2, 3, 5, 6, 8, 9),
+    t_end = c(2, 3, 5, 6, 8, 9, 10),
+    A = c(FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE),
+    B = c(FALSE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE),
+    C = c(TRUE, FALSE, FALSE, TRUE, FALSE, TRUE, TRUE)
+  )
+
+  data_a <- data_long %>%
+    filter(med == "A") %>%
+    mutate(A = (med == "A")) %>%
+    select(-med)
+
+  data_b <- data_long %>%
+    filter(med == "B") %>%
+    mutate(B = (med == "B")) %>%
+    select(-med)
+
+  data_c <- data_long %>%
+    filter(med == "C") %>%
+    mutate(C = (med == "C")) %>%
+    select(-med)
+
+  data_merged <- data_a %>%
+    merge_interval_data(data_b, id, t_start, t_end,
+                        new_var = B,
+                        fill = list("A" = FALSE,
+                                    "B" = FALSE)) %>%
+    merge_interval_data(data_c, id, t_start, t_end,
+                        new_var = C,
+                        fill = list("A" = FALSE,
+                                    "B" = FALSE,
+                                    "C" = FALSE))
+
+  expect_equal(data_merged, data_merged_benchmark)
+})
