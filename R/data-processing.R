@@ -192,6 +192,26 @@ merge_interval_data <- function(data, new_data,
     id_fill_list <- list()
     id_fill_list[[deparse(substitute(id))]] <- i
 
+    if (is.null(data_list[[i]])) {
+
+    }
+
+    if (is.null(new_data_list[[i]])) {
+      var_name <- as.character(substitute(new_var))
+
+      if (!is.list(fill)) {
+        fill_val <- fill
+      } else if (is.null(fill[[var_name]])) {
+        fill_val <- NA
+      } else {
+        fill_val <- fill[[var_name]]
+      }
+
+      new_data_list[[i]] <- data_list[[i]] %>%
+        select({{ id }}, {{ t_start_var }}, {{ t_end_var }}) %>%
+        mutate({{ new_var }} := fill[[var_name]])
+    }
+
     data_merged_list[[i]] <-
       data_list[[i]] %>%
       merge_interval_data_single(
