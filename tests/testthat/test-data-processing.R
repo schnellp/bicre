@@ -50,3 +50,18 @@ test_that("collapse_interval_data is invariant to input data order", {
                  collapse_interval_data("t_start", "t_end"))
 })
 
+test_that("collapse_interval_data is idempotent", {
+  expect_equal(data_overlap_ints %>%
+                 collapse_interval_data("t_start", "t_end"),
+               data_overlap_ints %>%
+                 collapse_interval_data("t_start", "t_end") %>%
+                 collapse_interval_data("t_start", "t_end"))
+})
+
+##########################
+### complete_intervals ###
+##########################
+
+test_that("complete_interval_data is idempotent", {
+
+})
