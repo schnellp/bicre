@@ -261,12 +261,34 @@ merge_interval_data <- function(data, new_data,
   data_merged[, c(colnames(data), as.character(substitute(new_var)))]
 }
 
-combine_variables <- function() {
-
-}
-
-
+#' @title Create \code{co_events} object.
+#'
+#' @description Combine time-varying covariate data and censored event data
+#'              into a single computation-friendly object.
+#'
+#' @param data_covariates A data frame containing time-varying covariates
+#'                        over disjoint intervals within units,
+#'                        one row per interval, including columns for
+#'                        unit id, interval start, and interval end.
+#' @param data_events A data frame containing censored event counts
+#'                    in intervals possibly overlapping within units,
+#'                    one row per interval, including columns for
+#'                    unit id and minimum and maximum event counts.
+#' @param id The name of the column in \code{data_covariates} and \code{data_events}
+#'           containing IDs linking units between the datasets.
+#' @param t_start the name of the column in \code{data_covariates} and \code{data_events}
+#'                containing the (open) start time of each interval.
+#' @param t_end the name of the column in \code{data_covariates} and \code{data_events}
+#'              containing the (closed) end time of each interval.
+#' @param e_min the name of the column in \code{data_events}
+#'              containing the minimum number of events in each interval.
+#' @param e_max the name of the column in \code{data_events}
+#'              containing the maximum number of events in each interval.
+#'
+#' @return An object of class \code{co_events}.
+#'
+#' @export
 co_events <- function(data_covariates, data_events,
-                      id, t_start, t_end, e_min, e_max, e_type = NULL) {
+                      id, t_start, t_end, e_min, e_max) {
 
 }
