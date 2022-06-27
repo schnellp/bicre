@@ -167,14 +167,14 @@ merge_interval_data_single <- function(data, new_data,
                                   fill = fill,
                                   new_nodes = nodes)
 
-  data <- data %>%
+  merged_data <- data %>%
     complete_interval_data_single(t_start_var = {{ t_start_var }},
                                   t_end_var = {{ t_end_var }},
                                   fill = fill,
                                   new_nodes = nodes) %>%
     mutate({{ new_var }} := temp_data %>% pull({{ new_var }}))
 
-  data
+  merged_data
 }
 
 merge_interval_data <- function(data, new_data,
@@ -203,7 +203,10 @@ merge_interval_data <- function(data, new_data,
       )
   }
 
-  do.call(rbind.data.frame, data_merged_list)
+  data_merged <- do.call(rbind.data.frame, data_merged_list)
+  rownames(data_merged) <- NULL
+
+  data_merged[, c(colnames(data), as.character(substitute(new_var)))]
 }
 
 combine_variables <- function() {
