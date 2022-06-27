@@ -183,6 +183,7 @@ merge_interval_data <- function(data, new_data,
                                 fill = NA) {
 
   data_list <- data %>% split(f = data %>% select({{ id }}))
+  new_data_list <- new_data %>% split(f = new_data %>% select({{ id }}))
   data_merged_list <- list()
 
   ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
@@ -194,10 +195,10 @@ merge_interval_data <- function(data, new_data,
     data_merged_list[[i]] <-
       data_list[[i]] %>%
       merge_interval_data_single(
-        new_data = new_data,
+        new_data = new_data_list[[i]],
         t_start_var = {{ t_start_var }},
         t_end_var = {{ t_end_var }},
-        new_var = {{ new_var }}
+        new_var = {{ new_var }},
         fill = c(fill, id_fill_list)
       )
   }
