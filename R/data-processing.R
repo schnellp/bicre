@@ -4,10 +4,8 @@
 #'              data into one interval.
 #'
 #' @param data A data frame.
-#' @param t_start_var A string indicating the name of the column in \code{data}
-#'                    storing the start of each interval.
-#' @param t_end_var A string indicating the name of the column in \code{data}
-#'                  storing the start of each interval.
+#' @param t_start_var Column in \code{data} storing the start of each interval.
+#' @param t_end_var Column in \code{data} storing the start of each interval.
 #'
 #' @return A data frame in which adjacent or overlapping intervals with
 #'         identical data combined into one interval.
@@ -24,21 +22,24 @@
 #'         "A", "A", "A", "A")
 #' )
 #'
-#' data_overlap_ints %>% collapse_interval_data("t_start", "t_end")
+#' data_overlap_ints %>% collapse_interval_data(t_start, t_end)
 #'
 #' @export
 collapse_interval_data <- function(data, t_start_var, t_end_var) {
-  data %>%
-    arrange(!!sym(t_start_var)) %>%
-    group_by(across(-all_of(c(t_start_var, t_end_var)))) %>%
+  data_collapsed <- data %>%
+    arrange({{ t_start_var }}) %>%
+    group_by(across(-c({{ t_start_var }}, {{ t_end_var }}))) %>%
     mutate(.index = c(0,
-                      cumsum(as.numeric(lead(!!sym(t_start_var))) >
-                               cummax(as.numeric(!!sym(t_end_var))))[-n()])) %>%
-    group_by(across(-all_of(c(t_start_var, t_end_var)))) %>%
-    summarize({{ t_start_var }} := min(!!sym(t_start_var)),
-              {{ t_end_var }} := max(!!sym(t_end_var), na.rm = TRUE),
+                      cumsum(as.numeric(lead({{ t_start_var }})) >
+                               cummax(as.numeric({{ t_end_var }})))[-n()])) %>%
+    group_by(across(-c({{ t_start_var }}, {{ t_end_var }}))) %>%
+    summarize({{ t_start_var }} := min({{ t_start_var }}),
+              {{ t_end_var }} := max({{ t_end_var }}, na.rm = TRUE),
               .groups = "drop") %>%
     select(-.index)
+
+  data_collapsed[, colnames(data_collapsed) %in% colnames(data)] <-
+    data_collapsed[, colnames(data)]
 }
 
 #' @title Single-id helper for \code{complete_interval_data}

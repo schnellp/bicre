@@ -23,7 +23,7 @@ data_collapsed_ints_benchmark <- data.frame(
 )
 
 data_collapsed_ints <- data_overlap_ints %>%
-  collapse_interval_data("t_start", "t_end")
+  collapse_interval_data(t_start, t_end)
 
 test_that("collapse_interval_data produces correct intervals", {
   expect_equal(data_collapsed_ints_benchmark$id,
@@ -44,18 +44,18 @@ test_that("collapse_interval_data keeps data intact", {
 test_that("collapse_interval_data is invariant to input data order", {
   set.seed(0)
   expect_equal(data_overlap_ints %>%
-                 collapse_interval_data("t_start", "t_end"),
+                 collapse_interval_data(t_start, t_end),
                data_overlap_ints %>%
                  slice_sample(prop = 1) %>%
-                 collapse_interval_data("t_start", "t_end"))
+                 collapse_interval_data(t_start, t_end))
 })
 
 test_that("collapse_interval_data is idempotent", {
   expect_equal(data_overlap_ints %>%
-                 collapse_interval_data("t_start", "t_end"),
+                 collapse_interval_data(t_start, t_end),
                data_overlap_ints %>%
-                 collapse_interval_data("t_start", "t_end") %>%
-                 collapse_interval_data("t_start", "t_end"))
+                 collapse_interval_data(t_start, t_end) %>%
+                 collapse_interval_data(t_start, t_end))
 })
 
 ##########################
