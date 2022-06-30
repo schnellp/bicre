@@ -62,14 +62,6 @@ test_that("collapse_interval_data is idempotent", {
 ### complete_intervals ###
 ##########################
 
-test_that("complete_interval_data is idempotent", {
-
-})
-
-###########################
-### merge_interval_data ###
-###########################
-
 data_long <- data.frame(
   id = c(1, 1, 1,
          2),
@@ -80,6 +72,40 @@ data_long <- data.frame(
   med = c("A", "B", "B",
           "A")
 )
+
+data_a <- data_long %>%
+  filter(med == "A") %>%
+  mutate(A = (med == "A")) %>%
+  select(-med) %>%
+  collapse_interval_data(t_start_var = t_start, t_end_var = t_end)
+
+test_that("complete_interval_data is idempotent", {
+  expect_equal(
+    data_a %>%
+      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+                             fill = list(A = FALSE), new_nodes = 42),
+    data_a %>%
+      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+                             fill = list(A = FALSE), new_nodes = 42) %>%
+      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+                             fill = list(A = FALSE), new_nodes = 42)
+  )
+})
+
+test_that("complete_interval_data retains column ordering", {
+  expect_equal(
+    data_a %>%
+      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+                             fill = list(A = FALSE), new_nodes = 42) %>%
+      colnames(),
+    data_a %>%
+      colnames()
+  )
+})
+
+###########################
+### merge_interval_data ###
+###########################
 
 data_merged_benchmark <- data.frame(
   id = as.character(c(1, 1, 1, 1, 1,

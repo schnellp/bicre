@@ -100,7 +100,7 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
 
   rownames(data_filled) <- NULL
 
-  data_filled
+  data_filled[, colnames(data)]
 }
 
 #' @title Fill in gaps between intervals
