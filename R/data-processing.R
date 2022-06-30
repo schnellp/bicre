@@ -4,8 +4,8 @@
 #'              data into one interval.
 #'
 #' @param data A data frame.
-#' @param t_start_var Column in \code{data} storing the start of each interval.
-#' @param t_end_var Column in \code{data} storing the start of each interval.
+#' @param t_start Column in \code{data} storing the start of each interval.
+#' @param t_end Column in \code{data} storing the start of each interval.
 #'
 #' @return A data frame in which adjacent or overlapping intervals with
 #'         identical data combined into one interval.
@@ -25,16 +25,16 @@
 #' data_overlap_ints %>% collapse_interval_data(t_start, t_end)
 #'
 #' @export
-collapse_interval_data <- function(data, t_start_var, t_end_var) {
+collapse_interval_data <- function(data, t_start, t_end) {
   data_collapsed <- data %>%
-    arrange({{ t_start_var }}) %>%
-    group_by(across(-c({{ t_start_var }}, {{ t_end_var }}))) %>%
+    arrange({{ t_start }}) %>%
+    group_by(across(-c({{ t_start }}, {{ t_end }}))) %>%
     mutate(.index = c(0,
-                      cumsum(as.numeric(lead({{ t_start_var }})) >
-                               cummax(as.numeric({{ t_end_var }})))[-n()])) %>%
-    group_by(across(-c({{ t_start_var }}, {{ t_end_var }}))) %>%
-    summarize({{ t_start_var }} := min({{ t_start_var }}),
-              {{ t_end_var }} := max({{ t_end_var }}, na.rm = TRUE),
+                      cumsum(as.numeric(lead({{ t_start }})) >
+                               cummax(as.numeric({{ t_end }})))[-n()])) %>%
+    group_by(across(-c({{ t_start }}, {{ t_end }}))) %>%
+    summarize({{ t_start }} := min({{ t_start }}),
+              {{ t_end }} := max({{ t_end }}, na.rm = TRUE),
               .groups = "drop") %>%
     select(-.index)
 
@@ -45,16 +45,16 @@ collapse_interval_data <- function(data, t_start_var, t_end_var) {
 #' @title Single-id helper for \code{complete_interval_data}
 #'
 #'
-complete_interval_data_single <- function(data, t_start_var, t_end_var,
+complete_interval_data_single <- function(data, t_start, t_end,
                                           fill = NA, new_nodes = c()) {
 
   var_names <- data %>%
-    select(-c({{ t_start_var }}, {{ t_end_var }})) %>%
+    select(-c({{ t_start }}, {{ t_end }})) %>%
     colnames()
 
 
   nodes <- data %>%
-    select({{ t_start_var }}, {{ t_end_var }}) %>%
+    select({{ t_start }}, {{ t_end }}) %>%
     unlist() %>%
     c(new_nodes) %>%
     unique() %>%
@@ -84,7 +84,7 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
       node_end <- nodes[j + 1]
 
       rows <- data %>%
-        filter({{ t_start_var }} <= node_start, {{ t_end_var }} >= node_end)
+        filter({{ t_start }} <= node_start, {{ t_end }} >= node_end)
 
       if (nrow(rows) == 1) {
         data_filled[j, var_name] <- rows[1, var_name]
@@ -109,10 +109,10 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
 #'              gaps between existing intervals.
 #'
 #' @param data A data frame.
-#' @param t_start_var The column in \code{data}
-#'                    storing the start of each interval.
-#' @param t_end_var The column in \code{data}
-#'                  storing the end of each interval.
+#' @param t_start The column in \code{data}
+#'                storing the start of each interval.
+#' @param t_end The column in \code{data}
+#'              storing the end of each interval.
 #' @param fill A named list specifying the value of each remaining variable
 #'             that should be used for newly added rows.
 #' @param new_nodes A vector of new interval endpoints that should
@@ -124,7 +124,7 @@ complete_interval_data_single <- function(data, t_start_var, t_end_var,
 #' @export
 #'
 #'
-complete_interval_data <- function(data, id, t_start_var, t_end_var,
+complete_interval_data <- function(data, id, t_start, t_end,
                                    fill = NA, new_nodes = c()) {
 
   data_list <- data %>% split(f = data %>% select({{ id }}))
@@ -139,8 +139,8 @@ complete_interval_data <- function(data, id, t_start_var, t_end_var,
     data_filled_list[[i]] <-
       data_list[[i]] %>%
       complete_interval_data_single(
-        t_start_var = {{ t_start_var }},
-        t_end_var = {{ t_end_var }},
+        t_start = {{ t_start }},
+        t_end = {{ t_end }},
         fill = c(fill, id_fill_list),
         new_nodes = new_nodes
       )
@@ -151,30 +151,30 @@ complete_interval_data <- function(data, id, t_start_var, t_end_var,
 
 #' @title Single-id helper for \code{merge_interval_data}
 merge_interval_data_single <- function(data, new_data,
-                                       t_start_var, t_end_var, new_var,
+                                       t_start, t_end, new_var,
                                        fill = NA) {
 
   nodes <- union(
     data %>%
-      select(c({{ t_start_var }}, {{ t_end_var }})) %>%
+      select(c({{ t_start }}, {{ t_end }})) %>%
       unlist(),
     new_data %>%
-      select(c({{ t_start_var }}, {{ t_end_var }})) %>%
+      select(c({{ t_start }}, {{ t_end }})) %>%
       unlist()
   ) %>%
     unique() %>%
     sort()
 
   temp_data <- new_data %>%
-    select(c({{ t_start_var }}, {{ t_end_var }}, {{ new_var }})) %>%
-    complete_interval_data_single(t_start_var = {{ t_start_var }},
-                                  t_end_var = {{ t_end_var }},
+    select(c({{ t_start }}, {{ t_end }}, {{ new_var }})) %>%
+    complete_interval_data_single(t_start = {{ t_start }},
+                                  t_end = {{ t_end }},
                                   fill = fill,
                                   new_nodes = nodes)
 
   merged_data <- data %>%
-    complete_interval_data_single(t_start_var = {{ t_start_var }},
-                                  t_end_var = {{ t_end_var }},
+    complete_interval_data_single(t_start = {{ t_start }},
+                                  t_end = {{ t_end }},
                                   fill = fill,
                                   new_nodes = nodes) %>%
     mutate({{ new_var }} := temp_data %>% pull({{ new_var }}))
@@ -190,10 +190,10 @@ merge_interval_data_single <- function(data, new_data,
 #'
 #' @param data A data frame.
 #' @param new_data A data frame containing the new variable to be merged.
-#' @param t_start_var The column in \code{data} and \code{new_data}
-#'                    storing the start of each interval.
-#' @param t_end_var The column in \code{data} and \code{new_data}
-#'                  storing the end of each interval.
+#' @param t_start The column in \code{data} and \code{new_data}
+#'                storing the start of each interval.
+#' @param t_end The column in \code{data} and \code{new_data}
+#'              storing the end of each interval.
 #' @param new_var The column in \code{new_data} to be merged into \code{data}.
 #' @param fill A named list specifying the value of each remaining variable
 #'             that should be used for newly added rows.
@@ -205,7 +205,7 @@ merge_interval_data_single <- function(data, new_data,
 #' @export
 merge_interval_data <- function(data, new_data,
                                 id,
-                                t_start_var, t_end_var, new_var,
+                                t_start, t_end, new_var,
                                 fill = NA) {
 
   data_list <- data %>% split(f = data %>% select({{ id }}))
@@ -241,7 +241,7 @@ merge_interval_data <- function(data, new_data,
       }
 
       new_data_list[[i]] <- data_list[[i]] %>%
-        select({{ id }}, {{ t_start_var }}, {{ t_end_var }}) %>%
+        select({{ id }}, {{ t_start }}, {{ t_end }}) %>%
         mutate({{ new_var }} := fill[[var_name]])
     }
 
@@ -249,8 +249,8 @@ merge_interval_data <- function(data, new_data,
       data_list[[i]] %>%
       merge_interval_data_single(
         new_data = new_data_list[[i]],
-        t_start_var = {{ t_start_var }},
-        t_end_var = {{ t_end_var }},
+        t_start = {{ t_start }},
+        t_end = {{ t_end }},
         new_var = {{ new_var }},
         fill = c(fill, id_fill_list)
       )

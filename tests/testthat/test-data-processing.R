@@ -77,17 +77,17 @@ data_a <- data_long %>%
   filter(med == "A") %>%
   mutate(A = (med == "A")) %>%
   select(-med) %>%
-  collapse_interval_data(t_start_var = t_start, t_end_var = t_end)
+  collapse_interval_data(t_start = t_start, t_end = t_end)
 
 test_that("complete_interval_data is idempotent", {
   expect_equal(
     data_a %>%
-      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+      complete_interval_data(id = id, t_start = t_start, t_end = t_end,
                              fill = list(A = FALSE), new_nodes = 42),
     data_a %>%
-      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+      complete_interval_data(id = id, t_start = t_start, t_end = t_end,
                              fill = list(A = FALSE), new_nodes = 42) %>%
-      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+      complete_interval_data(id = id, t_start = t_start, t_end = t_end,
                              fill = list(A = FALSE), new_nodes = 42)
   )
 })
@@ -95,7 +95,7 @@ test_that("complete_interval_data is idempotent", {
 test_that("complete_interval_data retains column ordering", {
   expect_equal(
     data_a %>%
-      complete_interval_data(id = id, t_start_var = t_start, t_end_var = t_end,
+      complete_interval_data(id = id, t_start = t_start, t_end = t_end,
                              fill = list(A = FALSE), new_nodes = 42) %>%
       colnames(),
     data_a %>%
@@ -134,7 +134,7 @@ test_that("merge_interval_data handles an id not appearing in new_data", {
   expect_warning(
     data_merged <- data_a %>%
       merge_interval_data(new_data = data_b,
-                          id = id, t_start_var = t_start, t_end_var = t_end,
+                          id = id, t_start = t_start, t_end = t_end,
                           new_var = B,
                           fill = list("A" = FALSE,
                                       "B" = FALSE))
@@ -157,7 +157,7 @@ test_that("merge_interval_data warns when an id id appears in new_data but not d
   expect_warning(
     data_b %>%
       merge_interval_data(new_data = data_a,
-                          id = id, t_start_var = t_start, t_end_var = t_end,
+                          id = id, t_start = t_start, t_end = t_end,
                           new_var = A,
                           fill = list("A" = FALSE,
                                       "B" = FALSE))
