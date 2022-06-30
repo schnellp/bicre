@@ -275,21 +275,81 @@ merge_interval_data <- function(data, new_data,
 #'                    in intervals possibly overlapping within units,
 #'                    one row per interval, including columns for
 #'                    unit id and minimum and maximum event counts.
-#' @param id The name of the column in \code{data_covariates} and \code{data_events}
+#' @param id The column in \code{data_covariates} and \code{data_events}
 #'           containing IDs linking units between the datasets.
-#' @param t_start the name of the column in \code{data_covariates} and \code{data_events}
+#' @param t_start The column in \code{data_covariates} and \code{data_events}
 #'                containing the (open) start time of each interval.
-#' @param t_end the name of the column in \code{data_covariates} and \code{data_events}
+#' @param t_end The column in \code{data_covariates} and \code{data_events}
 #'              containing the (closed) end time of each interval.
-#' @param e_min the name of the column in \code{data_events}
+#' @param e_min The column in \code{data_events}
 #'              containing the minimum number of events in each interval.
-#' @param e_max the name of the column in \code{data_events}
+#' @param e_max The column in \code{data_events}
 #'              containing the maximum number of events in each interval.
+#' @param fill A named list specifying the value of each time-varying covariate
+#'             that should be used for newly added rows.
 #'
 #' @return An object of class \code{co_events}.
 #'
 #' @export
 co_events <- function(data_covariates, data_events,
-                      id, t_start, t_end, e_min, e_max) {
+                      id, t_start, t_end, e_min, e_max,
+                      fill = NA) {
 
+  ids_covariates <- data_covariates %>%
+    pull({{ id }}) %>%
+    unique() %>%
+    sort()
+
+  ids_events <- data_events %>%
+    pull({{ id }}) %>%
+    unique() %>%
+    sort()
+
+  if (!all(ids_events %in% ids_covariates)) {
+    ids_missing <- setdiff(ids_events, ids_covariates)
+
+    warning(paste("Dropping IDs in data_events not in data_covariates:",
+                  paste0(ids_missing, collapse = ", ")))
+
+  }
+
+  data_covariates_list <- data_covariates %>%
+    split(f = data_covariates %>% select({{ id }}))
+
+  data_events_list <- data_events %>%
+    split(f = data_events %>% select({{ id }}))
+
+  co_events <- list()
+
+  # ignores IDs in data_events missing from data_covariates
+  for (i in ids_covariates) {
+
+    # make sure covariate intervals cover event intervals
+    covariate_nodes <- data_covariates_list[[i]] %>%
+      select(c({{ t_start }}, {{ t_end }})) %>%
+      unlist() %>%
+      unique()
+
+    event_nodes <- data_events_list[[i]] %>%
+      select(c({{ t_start }}, {{ t_end }})) %>%
+      unlist() %>%
+      unique()
+
+    data_covariates_list[[i]] <- data_covariates_list[[i]] %>%
+      complete_interval_data_single({{ t_start }}, {{ t_end }},
+                                    fill = fill,
+                                    new_nodes = c(min(event_nodes, covariate_nodes),
+                                                  max(event_nodes, covariate_nodes))) %>%
+      mutate({{ id }} := i)
+
+    # pair covariate and event datasets
+    co_events[[i]] <- list(
+      covariates = data_covariates_list[[i]],
+      events = data_events_list[[i]]
+    )
+  }
+
+  class(co_events) <- c(class(co_events), "co_events")
+
+  co_events
 }

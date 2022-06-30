@@ -215,3 +215,68 @@ test_that("merge_interval_data chains correctly", {
 
   expect_equal(data_merged, data_merged_benchmark)
 })
+
+#################
+### co_events ###
+#################
+
+data_test_events <- data.frame(
+  id = as.character(c(1, 1, 1,
+                      2)),
+  t_start = c(20, 22, 29,
+              0),
+  t_end = c(22, 32, 30,
+            4),
+  e_min = c(0, 0, 1,
+            1),
+  e_max = c(0, 0, Inf,
+            Inf)
+)
+
+ce <- co_events(data_merged_benchmark, data_test_events,
+                id, t_start, t_end, e_min, e_max,
+                fill = list("A" = FALSE,
+                            "B" = FALSE))
+
+test_that("co_events creates a list indexed by IDs", {
+  expect_s3_class(ce, "list")
+
+  expect_setequal(
+    data_merged_benchmark %>% pull(id),
+    ce %>% names()
+    )
+})
+
+test_that("co_events elements are single-ID datasets from arguments", {
+  expect_equal(
+    colnames(ce[["1"]]$covariates),
+    colnames(data_merged_benchmark)
+  )
+
+  expect_gte(nrow(ce[["1"]]$covariates),
+             nrow(data_merged_benchmark %>% filter(id == "1")))
+
+  expect_equal(
+    colnames(ce[["1"]]$events),
+    colnames(data_test_events)
+  )
+
+  expect_equal(nrow(ce[["1"]]$events),
+               nrow(data_test_events %>% filter(id == "1")))
+
+  expect_equal(
+    colnames(ce[["2"]]$covariates),
+    colnames(data_merged_benchmark)
+  )
+
+  expect_gte(nrow(ce[["2"]]$covariates),
+             nrow(data_merged_benchmark %>% filter(id == "2")))
+
+  expect_equal(
+    colnames(ce[["2"]]$events),
+    colnames(data_test_events)
+  )
+
+  expect_equal(nrow(ce[["2"]]$events),
+               nrow(data_test_events %>% filter(id == "2")))
+})
