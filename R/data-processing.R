@@ -289,6 +289,25 @@ merge_interval_data <- function(data, new_data,
 #'             that should be used for newly added rows.
 #'
 #' @return An object of class \code{co_events}.
+#'         A \code{co_events} object is a list indexed by IDs from the source
+#'         data objects. Each list element contains \code{covariates} and
+#'         \code{events} elements, which are data frames comprised of the rows
+#'         of \code{data_covariates} and \code{data_events}, respectively,
+#'         corresponding to the ID named by the list index.
+#'         The \code{co_events} object also has the attribute
+#'         \code{"special_cols"}, a named vector with components:
+#'         \describe{
+#'           \item{\code{id}}{character string indicating name of the column
+#'           passed as the \code{id} argument;}
+#'           \item{\code{t_start}}{character string indicating name of the column
+#'           passed as the \code{t_start} argument;}
+#'           \item{\code{t_end}}{character string indicating name of the column
+#'           passed as the \code{t_end} argument;}
+#'           \item{\code{e_min}}{character string indicating name of the column
+#'           passed as the \code{e_min} argument;}
+#'           \item{\code{e_max}}{character string indicating name of the column
+#'           passed as the \code{e_max} argument.}
+#'         }
 #'
 #' @export
 co_events <- function(data_covariates, data_events,
@@ -350,6 +369,16 @@ co_events <- function(data_covariates, data_events,
   }
 
   class(co_events) <- c(class(co_events), "co_events")
+
+  special_cols <- c(
+    "id" = deparse(substitute(id)),
+    "t_start" = deparse(substitute(t_start)),
+    "t_end" = deparse(substitute(t_end)),
+    "e_min" = deparse(substitute(e_min)),
+    "e_max" = deparse(substitute(e_max))
+  )
+
+  attributes(co_events)$special_cols <- special_cols
 
   co_events
 }
