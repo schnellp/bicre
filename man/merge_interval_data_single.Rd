@@ -4,14 +4,7 @@
 \alias{merge_interval_data_single}
 \title{Single-id helper for \code{merge_interval_data}}
 \usage{
-merge_interval_data_single(
-  data,
-  new_data,
-  t_start_var,
-  t_end_var,
-  new_var,
-  fill = NA
-)
+merge_interval_data_single(data, new_data, t_start, t_end, new_var, fill = NA)
 }
 \description{
 Single-id helper for \code{merge_interval_data}

@@ -4,13 +4,7 @@
 \alias{complete_interval_data_single}
 \title{Single-id helper for \code{complete_interval_data}}
 \usage{
-complete_interval_data_single(
-  data,
-  t_start_var,
-  t_end_var,
-  fill = NA,
-  new_nodes = c()
-)
+complete_interval_data_single(data, t_start, t_end, fill = NA, new_nodes = c())
 }
 \description{
 Single-id helper for \code{complete_interval_data}

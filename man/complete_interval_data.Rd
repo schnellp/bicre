@@ -4,22 +4,15 @@
 \alias{complete_interval_data}
 \title{Fill in gaps between intervals}
 \usage{
-complete_interval_data(
-  data,
-  id,
-  t_start_var,
-  t_end_var,
-  fill = NA,
-  new_nodes = c()
-)
+complete_interval_data(data, id, t_start, t_end, fill = NA, new_nodes = c())
 }
 \arguments{
 \item{data}{A data frame.}
 
-\item{t_start_var}{The column in \code{data}
+\item{t_start}{The column in \code{data}
 storing the start of each interval.}
 
-\item{t_end_var}{The column in \code{data}
+\item{t_end}{The column in \code{data}
 storing the end of each interval.}
 
 \item{fill}{A named list specifying the value of each remaining variable

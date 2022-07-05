@@ -4,25 +4,17 @@
 \alias{merge_interval_data}
 \title{Merge new time-dependent variable into interval dataset}
 \usage{
-merge_interval_data(
-  data,
-  new_data,
-  id,
-  t_start_var,
-  t_end_var,
-  new_var,
-  fill = NA
-)
+merge_interval_data(data, new_data, id, t_start, t_end, new_var, fill = NA)
 }
 \arguments{
 \item{data}{A data frame.}
 
 \item{new_data}{A data frame containing the new variable to be merged.}
 
-\item{t_start_var}{The column in \code{data} and \code{new_data}
+\item{t_start}{The column in \code{data} and \code{new_data}
 storing the start of each interval.}
 
-\item{t_end_var}{The column in \code{data} and \code{new_data}
+\item{t_end}{The column in \code{data} and \code{new_data}
 storing the end of each interval.}
 
 \item{new_var}{The column in \code{new_data} to be merged into \code{data}.}

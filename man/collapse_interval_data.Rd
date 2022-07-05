@@ -4,16 +4,14 @@
 \alias{collapse_interval_data}
 \title{Collapse redundant intervals in dataset}
 \usage{
-collapse_interval_data(data, t_start_var, t_end_var)
+collapse_interval_data(data, t_start, t_end)
 }
 \arguments{
 \item{data}{A data frame.}
 
-\item{t_start_var}{A string indicating the name of the column in \code{data}
-storing the start of each interval.}
+\item{t_start}{Column in \code{data} storing the start of each interval.}
 
-\item{t_end_var}{A string indicating the name of the column in \code{data}
-storing the start of each interval.}
+\item{t_end}{Column in \code{data} storing the start of each interval.}
 }
 \value{
 A data frame in which adjacent or overlapping intervals with
@@ -35,6 +33,6 @@ med = c("A", "A", "B", "B",
         "A", "A", "A", "A")
 )
 
-data_overlap_ints \%>\% collapse_interval_data("t_start", "t_end")
+data_overlap_ints \%>\% collapse_interval_data(t_start, t_end)
 
 }
