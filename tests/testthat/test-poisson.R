@@ -40,6 +40,17 @@ test_that("expect_cum_weibull_tvc vectorized correctly", {
   )
 })
 
+test_that("expect_cum_weibull_tvc returns vector when no times given", {
+  lin_pred <- 1 : 5
+  t_breaks <- 1 : 5
+
+  expect_equal(
+    expect_cum_weibull_tvc(
+      numeric(0),
+      lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
+    numeric(0))
+})
+
 test_that("expect_cum_weibull_tvc_inverse inverts correctly", {
   lin_pred <- 1 : 5
   t_breaks <- 1 : 5
@@ -67,6 +78,17 @@ test_that("expect_cum_weibull_tvc_inverse inverts correctly", {
       expect_cum_weibull_tvc(0, lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
       lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
     0)
+})
+
+test_that("expect_cum_weibull_tvc_inverse returns vector when no means given", {
+  lin_pred <- 1 : 5
+  t_breaks <- 1 : 5
+
+  expect_equal(
+    expect_cum_weibull_tvc_inverse(
+      numeric(0),
+      lin_pred = lin_pred, t_breaks = t_breaks, k = 2, b = 3),
+    numeric(0))
 })
 
 test_that("expect_cum_weibull_inverse inverts correctly", {

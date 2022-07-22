@@ -72,6 +72,10 @@ expect_cum_weibull_tvc <- function(t,
                                    shape = 1, scale = 1,
                                    k = shape, b = scale^(-shape)) {
 
+  if (length(t) == 0) {
+    return(numeric(0))
+  }
+
   stopifnot(all(t >= 0))
   stopifnot(all(t <= tail(t_breaks, 1)))
   stopifnot(length(lin_pred) == length(t_breaks))
@@ -116,6 +120,10 @@ expect_cum_weibull_tvc_inverse <- function(m,
                                            t_breaks = Inf,
                                            shape = 1, scale = 1,
                                            k = shape, b = scale^(-shape)) {
+
+  if (length(m) == 0) {
+    return(numeric(0))
+  }
 
   stopifnot(m >= 0)
   stopifnot(length(lin_pred) == length(t_breaks))
