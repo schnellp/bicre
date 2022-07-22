@@ -170,6 +170,20 @@ build_imputation_units_single <- function(ev) {
       split(f = ev[[i]] %>% select(noncontig))
   }
 
+  ### record covered intervals
+
+  covered_ints <- list()
+
+  for (i in 1 : length(ev)) {
+    covered_ints[[i]] <- data.frame(
+      t_start = min(ev[[i]]$`TRUE`$t_start, ev[[i]]$`FALSE`$t_start),
+      t_end = max(ev[[i]]$`TRUE`$t_end, ev[[i]]$`FALSE`$t_end)
+      )
+  }
+
+  attributes(ev)$covered_ints <- do.call("rbind", covered_ints) %>%
+    collapse_interval_data(t_start, t_end)
+
   ev
 }
 
