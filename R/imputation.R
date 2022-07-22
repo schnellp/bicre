@@ -108,3 +108,28 @@ sample_sequential <- function(imputation_unit,
   return(NULL)
 }
 
+impute_single_id <- function(co_events_frame_single,
+                             coef,
+                             expect_cum_FUN,
+                             expect_cum_inverse_FUN,
+                             ...) {
+
+  lin_pred <- co_events_frame_single$X %*% coef
+  t_breaks <- co_events_frame_single$cov_t$t_end
+
+  z <- sapply(co_events_frame_single$ev,
+              sample_sequential,
+              expect_cum_FUN = expect_cum_FUN,
+              expect_cum_inverse_FUN = expect_cum_inverse_FUN,
+              lin_pred = lin_pred,
+              t_breaks = t_breaks,
+              ...)
+
+  z <- sort(unlist(z))
+
+  if (class(z) == "list") {
+    return(numeric(0))
+  } else {
+    return(z)
+  }
+}

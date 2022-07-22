@@ -38,15 +38,11 @@ cef <- co_events_frame(ce, ~ A + B)
 
 iu <- build_imputation_units(cef)
 
-test_that("sample_sequential satisfies constraints", {
-  z <- unlist(
-    sapply(iu[[1]]$ev,
-           sample_sequential,
-           expect_cum_FUN = expect_cum_weibull_tvc,
-           expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse,
-           lin_pred = iu[[1]]$X %*% c(0, 1, 0),
-           t_breaks = iu[[1]]$cov_t$t_end)
-  )
+test_that("impute_single satisfies constraints", {
+  z <- impute_single_id(iu[[1]],
+                        coef = c(0, 1, 0),
+                        expect_cum_FUN = expect_cum_weibull_tvc,
+                        expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse)
 
 
   counts <- sapply(1 : nrow(iu[[1]]$events),
@@ -58,3 +54,5 @@ test_that("sample_sequential satisfies constraints", {
   expect_true(all(counts >= iu[[1]]$events$e_min &
                     counts <= iu[[1]]$events$e_max))
 })
+
+
