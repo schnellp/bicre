@@ -227,9 +227,9 @@ data_test_events <- data.frame(
               0),
   t_end = c(22, 32, 30,
             4),
-  e_min = c(0, 0, 1,
+  e_min = c(0, 1, 0,
             1),
-  e_max = c(0, 0, Inf,
+  e_max = c(0, Inf, 0,
             Inf)
 )
 
