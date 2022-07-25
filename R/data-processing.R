@@ -314,6 +314,9 @@ co_events <- function(data_covariates, data_events,
                       id, t_start, t_end, e_min, e_max,
                       fill = NA) {
 
+  data_covariates <- data_covariates %>%
+    mutate(across(where(is.character), as.factor))
+
   ids_covariates <- data_covariates %>%
     pull({{ id }}) %>%
     unique() %>%
