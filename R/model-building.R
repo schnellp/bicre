@@ -95,14 +95,14 @@ build_imputation_units_single <- function(ev) {
             t_start < e$t_start &
               t_end > e$t_start &
               t_end <= e$t_end,
-            e$t_start,
-            t_end),
+            as.double(e$t_start),
+            as.double(t_end)),
           t_start = if_else( # t_start but not t_end in current interval
             t_start >= e$t_start &
               t_start < e$t_end &
               t_end > e$t_end,
-            e$t_end,
-            t_start
+            as.double(e$t_end),
+            as.double(t_start)
           )
         )
     }
