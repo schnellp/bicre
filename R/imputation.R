@@ -130,6 +130,6 @@ impute_single_id <- function(co_events_frame_single,
   if (class(z) == "list") {
     return(numeric(0))
   } else {
-    return(z)
+    return(drop(z))
   }
 }
