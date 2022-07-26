@@ -17,7 +17,8 @@
 #' expect_cum_weibull(4, k = 2, b = 1 / 3^2)
 expect_cum_weibull <- function(t,
                                shape = 1, scale = 1,
-                               k = shape, b = scale^(-shape)) {
+                               k = shape, b = scale^(-shape),
+                               ...) {
   b * t^k
 }
 
@@ -39,7 +40,8 @@ expect_cum_weibull <- function(t,
 #' expect_cum_weibull_inverse(expect_cum_weibull(4, 2, 3))
 expect_cum_weibull_inverse <- function(m,
                                        shape = 1, scale = 1,
-                                       k = shape, b = scale^(-shape)) {
+                                       k = shape, b = scale^(-shape),
+                                       ...) {
   (m / b)^(1 / k)
 }
 
@@ -70,7 +72,8 @@ expect_cum_weibull_tvc <- function(t,
                                    lin_pred = 0,
                                    t_breaks = t,
                                    shape = 1, scale = 1,
-                                   k = shape, b = scale^(-shape)) {
+                                   k = shape, b = scale^(-shape),
+                                   ...) {
 
   if (length(t) == 0) {
     return(numeric(0))
@@ -119,7 +122,8 @@ expect_cum_weibull_tvc_inverse <- function(m,
                                            lin_pred = 0,
                                            t_breaks = Inf,
                                            shape = 1, scale = 1,
-                                           k = shape, b = scale^(-shape)) {
+                                           k = shape, b = scale^(-shape),
+                                           ...) {
 
   if (length(m) == 0) {
     return(numeric(0))
@@ -156,6 +160,9 @@ expect_cum_weibull_tvc_inverse <- function(m,
 #'                       simultaneous draws by the rejection sampler.
 #' @param max_tries For left-only-truncated draws, the maximum number of
 #'                  iterations of the rejection sampler.
+#' @param fail_mode Logical. If \code{max_tries} is exceeded, should the
+#'                  function return the mode (\code{floor(lambda)}) of the
+#'                  distribution (with a warning) rather than throwing an error?
 #'
 #' @details
 #' If \code{max < Inf} then \code{sample} is used to draw from the finite sample space.
@@ -176,7 +183,9 @@ expect_cum_weibull_tvc_inverse <- function(m,
 #' \link{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
 #'
 rpois_trunc <- function(n, lambda, min = 0, max = Inf,
-                        parallel_draws = n * 2, max_tries = 1e3) {
+                        parallel_draws = n * 2, max_tries = 1e3,
+                        fail_mode = FALSE,
+                        ...) {
 
   stopifnot(length(lambda) == 1)
   stopifnot(lambda >= 0)
@@ -210,7 +219,18 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
       }
     }
 
-    stop("Maximum number of rejection sampler iterations reached.")
+    if (fail_mode) {
+      warning(paste("Maximum number of rejection sampler iterations reached.",
+                    "Returning mode."))
+      if (lambda > max) {
+        return(rep(floor(max), n))
+      } else {
+        return(rep(floor(max(min, lambda)), n))
+      }
+    } else {
+      stop("Maximum number of rejection sampler iterations reached.")
+    }
+
   } else {
     return(rpois(n, lambda = lambda))
   }
@@ -253,7 +273,8 @@ simulate_nonhomog_inversion <- function(t_start, t_end,
   m_end <- expect_cum_FUN(t_end, ...)
 
   N <- rpois_trunc(1, lambda = m_end - m_start,
-                   min = count_min, max = count_max)
+                   min = count_min, max = count_max,
+                   ...)
   z <- sort(runif(N, min = m_start, max = m_end))
 
   expect_cum_inverse_FUN(z, ...)

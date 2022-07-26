@@ -228,5 +228,14 @@ test_that("rpois_trunc handles edge cases correctly", {
   expect_true(all(x == 0))
   expect_length(x, 10)
 
-  expect_error(rpois_trunc(n = 10, lambda = 0, min = 1))
+  expect_error(rpois_trunc(n = 10, lambda = 0, min = 1, max_tries = 1))
+
+  expect_error(rpois_trunc(n = 10, lambda = 1e-6, min = 10, max_tries = 1))
+
+  expect_equal(
+    suppressWarnings(
+      rpois_trunc(n = 10, lambda = 1e-6, min = 1, max_tries = 1, fail_mode = TRUE)
+      ),
+    rep(1, 10)
+    )
 })
