@@ -68,6 +68,8 @@ expect_cum_weibull_inverse <- function(m,
 #'
 #' @examples
 #' expect_cum_weibull_tvc(3, lin_pred = 1 : 5, t_breaks = 1 : 5, k = 1, b = 1)
+#'
+#' @export
 expect_cum_weibull_tvc <- function(t,
                                    lin_pred = 0,
                                    t_breaks = t,
@@ -118,6 +120,8 @@ expect_cum_weibull_tvc <- function(t,
 #' expect_cum_weibull_tvc_inverse(
 #'   expect_cum_weibull_tvc(3, lin_pred = 1 : 5, t_breaks = 1 : 5, k = 1, b = 1),
 #'   lin_pred = 1 : 5, t_breaks = 1 : 5, k = 1, b = 1)
+#'
+#' @export
 expect_cum_weibull_tvc_inverse <- function(m,
                                            lin_pred = 0,
                                            t_breaks = Inf,
@@ -266,6 +270,8 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 #'   k = 2, b = 1,
 #'   t_breaks = c(50, 100),
 #'   lin_pred = c(log(10), log(2)))
+#'
+#' @export
 simulate_nonhomog_inversion <- function(t_start, t_end,
                                         expect_cum_FUN, expect_cum_inverse_FUN,
                                         count_min = 0, count_max = Inf,

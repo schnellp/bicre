@@ -5,7 +5,7 @@ log_likelihood_pois <- function(event_times,
                                 t_breaks) {
 
   if (length(event_times) == 0) {
-    log_rates_at_events <- NA
+    log_rates_at_events <- 0
   } else {
     log_rates_at_events <- sapply(event_times, function(z) {
       log_rates[z <= t_breaks][1]
@@ -22,15 +22,42 @@ log_likelihood_pois <- function(event_times,
                            lin_pred = log_rates,
                            t_breaks = t_breaks)
 
-  sum(log_rates_at_events, interval_neg_expect_cum, na.rm = TRUE)
+  sum(log_rates_at_events, interval_neg_expect_cum)
 }
 
 log_prior_coef <- function(coef) {
   0
 }
 
+#' @title Bayesian imputation for censored recurrent events
+#'
+#' @description Fits a non-homogeneous Poisson process model
+#'              to interval count data with complex structure and censoring
+#'              using Bayesian data augmentation.
+#'
+#' @param formula An object of class \code{formula}:
+#'                a symbolic description of the model to be fit.
+#'                Details of the model specification are given
+#'                in the "Details" section.
+#' @param co_events An object of class \code{co_events} containing
+#'                  the pre-structured outcome and covariate data
+#'                  for the model.
+#' @param n_burn The number of burn-in iterations for the MCMC sampler.
+#' @param n_keep The number of retained iterations from the MCMC sampler.
+#'
+#' @details
+#' The \code{formula} argument does not require a left-hand side,
+#' and any LHS supplied is ignored.
+#' The variables in the right-hand side must be available in the
+#' \code{co_events} argument.
+#'
+#' @return An object of the class \code{bicre}.
+#'
+#' @export
 bicre <- function(formula, co_events,
-                  n_burn = 100, n_keep = 1000) {
+                  n_burn = 100, n_keep = 1000,
+                  z_force = NULL,
+                  verbose = FALSE) {
 
   n_iter <- n_burn + n_keep
 
@@ -45,22 +72,29 @@ bicre <- function(formula, co_events,
   colnames(trace) <- colnames(iu[[1]]$X)
   trace[1, ] <- coef
 
-  for (iter in 9206 : n_iter) {
-    print(iter)
+  for (iter in 2 : n_iter) {
+    if (verbose) {
+      print(iter)
+    }
 
     # imputation
-    z <- sapply(iu,
-                impute_single_id,
-                coef = coef,
-                expect_cum_FUN = expect_cum_weibull_tvc,
-                expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse,
-                fail_mode = TRUE,
-                simplify = FALSE)
+    if (is.null(z_force)) {
+      z <- sapply(iu,
+                  impute_single_id,
+                  coef = coef,
+                  expect_cum_FUN = expect_cum_weibull_tvc,
+                  expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse,
+                  fail_mode = TRUE,
+                  simplify = FALSE)
+    } else {
+      z <- z_force
+    }
+
 
     # regression coefficients
 
     coef_cur <- coef
-    coef_pro <- coef + rnorm(coef_dim, mean = 0, sd = 0.02)
+    coef_pro <- coef + rnorm(coef_dim, mean = 0, sd = 0.04)
 
     log_lik_cur <- sum(sapply(
       1 : length(z),
@@ -96,7 +130,7 @@ bicre <- function(formula, co_events,
     trace[iter, ] <- coef
   }
 
-
+  class(trace) <- "bicre"
   trace
 
 }
