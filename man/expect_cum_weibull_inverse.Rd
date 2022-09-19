@@ -9,7 +9,8 @@ expect_cum_weibull_inverse(
   shape = 1,
   scale = 1,
   k = shape,
-  b = scale^(-shape)
+  b = scale^(-shape),
+  ...
 )
 }
 \arguments{

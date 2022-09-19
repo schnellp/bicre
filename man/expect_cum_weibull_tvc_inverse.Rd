@@ -11,7 +11,8 @@ expect_cum_weibull_tvc_inverse(
   shape = 1,
   scale = 1,
   k = shape,
-  b = scale^(-shape)
+  b = scale^(-shape),
+  ...
 )
 }
 \arguments{
@@ -45,4 +46,5 @@ piecewise constant multiplicative factor exp(lin_pred).
 expect_cum_weibull_tvc_inverse(
   expect_cum_weibull_tvc(3, lin_pred = 1 : 5, t_breaks = 1 : 5, k = 1, b = 1),
   lin_pred = 1 : 5, t_breaks = 1 : 5, k = 1, b = 1)
+
 }

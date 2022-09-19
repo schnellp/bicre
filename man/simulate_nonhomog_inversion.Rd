@@ -51,4 +51,5 @@ simulate_nonhomog_inversion(
   k = 2, b = 1,
   t_breaks = c(50, 100),
   lin_pred = c(log(10), log(2)))
+
 }

@@ -4,7 +4,7 @@
 \alias{expect_cum_weibull}
 \title{Weibull expected cumulative event count}
 \usage{
-expect_cum_weibull(t, shape = 1, scale = 1, k = shape, b = scale^(-shape))
+expect_cum_weibull(t, shape = 1, scale = 1, k = shape, b = scale^(-shape), ...)
 }
 \arguments{
 \item{t}{Time at which to evaluate expected cumulative count.}

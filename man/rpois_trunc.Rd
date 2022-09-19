@@ -10,7 +10,9 @@ rpois_trunc(
   min = 0,
   max = Inf,
   parallel_draws = n * 2,
-  max_tries = 1000
+  max_tries = 1000,
+  fail_mode = FALSE,
+  ...
 )
 }
 \arguments{
@@ -27,6 +29,10 @@ simultaneous draws by the rejection sampler.}
 
 \item{max_tries}{For left-only-truncated draws, the maximum number of
 iterations of the rejection sampler.}
+
+\item{fail_mode}{Logical. If \code{max_tries} is exceeded, should the
+function return the mode (\code{floor(lambda)}) of the
+distribution (with a warning) rather than throwing an error?}
 }
 \value{
 A vector of draws.
