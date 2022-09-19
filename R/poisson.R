@@ -198,7 +198,9 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
     }
   }
 
-  if (max < Inf) {
+  if (min == max) {
+    return(min)
+  } else if (max < Inf) {
     return(
       sample(min : max, size = n, replace = TRUE,
              prob = dpois(min : max, lambda = lambda))
