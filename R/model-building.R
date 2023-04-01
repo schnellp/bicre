@@ -72,20 +72,21 @@ co_events_frame <- function(co_events, formula, contrasts = NULL, ...) {
   co_events
 }
 
-#' @title Build imputation units
-#'
-#' @description An imputation unit is a set of one or more pairwise overlapping
-#'              intervals on which the event history may be imputed
-#'              independently of all intervals outside of their union.
-#'
-#' @param ev The \code{ev} member of a \code{co_events_frame} object
-build_imputation_units_single <- function(ev) {
 
-  ### shorten >0-event intervals with one-sided overlap with
-  ### zero-event intervals.
+
+simplify_ev <- function(ev){
+
+  ### 1. make a union of all F intervals
   ev_zero <- ev %>% filter(e_max == 0)
   ev_impute <- ev %>% filter(e_max > 0)
 
+  if(nrow(ev_zero) > 1){
+    ev_zero <- ev_zero %>% collapse_interval_data(t_start, t_end) %>% as.data.frame()
+  }
+
+
+  ### 2. shorten >0-event intervals with one-sided overlap with
+  ### zero-event intervals.
   if (nrow(ev_zero) > 0 && nrow(ev_impute) > 0) {
     for (i in 1 : nrow(ev_zero)) {
       e <- ev_zero %>% slice(i)
@@ -108,20 +109,102 @@ build_imputation_units_single <- function(ev) {
     }
   }
 
+  ### 3. delete >0-event intervals covered by zero-event intervals.
+  if (nrow(ev_zero) > 0 && nrow(ev_impute) > 0){
+    ev_impute_delete_row <- c()
+    for(row_num in 1:nrow(ev_impute)){
+      e <- ev_impute %>% slice(row_num)
+      if(nrow(ev_zero %>% filter(t_start <= e$t_start & t_end >= e$t_end)) > 0){
+        if(e$e_min != 0){
+          stop("contradiction between T interval and F interval covering it")
+        }
+        ev_impute_delete_row <- c(ev_impute_delete_row, row_num)
+      }
+    }
+    if(length(ev_impute_delete_row) > 0){
+      ev_impute <- ev_impute[-ev_impute_delete_row,]
+    }
+
+  }
+
+  ### 4. delete upper or lower bound only T intervals
+  ### whose information has already represented by other intervals
+  if (nrow(ev_impute) > 1){
+    ev_upper_only_row <- with(ev_impute, e_max != Inf & e_min ==0) %>% which
+    ev_lower_only_row <- with(ev_impute, e_max == Inf & e_min !=0) %>% which
+    ev_both_row <- (1:nrow(ev_impute))[-c(ev_upper_only_row, ev_lower_only_row)]
+
+    delete_row_upper <- c()
+    if (length(ev_upper_only_row) > 0){
+      for(row_num in ev_upper_only_row){
+        e <- ev_impute %>% slice(row_num)
+        if(sum(ev_impute %>% slice(c(ev_both_row, ev_upper_only_row)) %>%
+               apply(1, function(x) x["t_start"] <= e$t_start &
+                     x["t_end"] >= e$t_end &
+                     x["e_max"] <= e$e_max) ) > 1){
+          delete_row_upper <- c(delete_row_upper, row_num)
+        }
+      }
+    }
+
+    delete_row_lower <- c()
+    if (length(ev_lower_only_row) > 0){
+      for(row_num in ev_lower_only_row){
+        e <- ev_impute %>% slice(row_num)
+        if(sum(ev_impute %>% slice(c(ev_both_row, ev_lower_only_row)) %>%
+               apply(1, function(x) x["t_start"] >= e$t_start &
+                     x["t_end"] <= e$t_end &
+                     x["e_min"] >= e$e_min) ) > 1){
+          delete_row_lower <- c(delete_row_lower, row_num)
+        }
+      }
+
+    }
+
+    if (length(c(delete_row_upper, delete_row_lower)) > 0){
+      ev_impute <- ev_impute[-c(delete_row_upper, delete_row_lower),]
+    }
+  }
+
+  ### 5. A T interval's upper bound can be changed by the smaller upper bound of
+  ### any T interval strictly covers the former T interval.
+  ### A T interval's lower bound can be changed by the bigger lower bound of
+  ### any T interval strictly covered by the former T interval.
+
+  if (nrow(ev_impute) > 1){
+    for(i in 1 : nrow(ev_impute)){
+      e <- ev_impute %>% slice(i)
+      ev_impute$e_max[i] <- ev_impute %>% filter(t_start <= e$t_start &
+                             t_end >= e$t_end &
+                             e_max <= e$e_max) %>% pull(e_max) %>% min
+      ev_impute$e_min[i] <- ev_impute %>% filter(t_start >= e$t_start &
+                             t_end <= e$t_end &
+                             e_min >= e$e_min) %>% pull(e_min) %>% max
+    }
+  }
+
+  if (nrow(ev_zero) > 0){
+    ev_zero_outer_row <- c()
+    for (i in 1:nrow(ev_zero)){
+      e <- ev_zero %>% slice(i)
+      with(ev_impute, (t_start < e$t_start & t_end > e$t_end))
+    }
+  }
+
+  ev <- rbind(ev_zero, ev_impute)  %>% arrange(t_start, t_end, e_min, e_max)
+  ev
+}
 
 
-  ev <- rbind(ev_zero, ev_impute)
 
-  ### partition into self-overlapping units
+partition_ev <- function(ev) {
+
+  ### partition into self-overlapping units using column unit
 
   ev <- ev %>%
-    arrange(t_start, t_end, e_min, e_max) %>%
     mutate(
-      unit = as.numeric(NA),
-      noncontig = FALSE,
-      t_start_trunc = t_start,
-      t_end_trunc = t_end
-      )
+      unit = as.numeric(NA)
+    )
 
   u <- 1
   ev$unit[1] <- 1
@@ -137,54 +220,183 @@ build_imputation_units_single <- function(ev) {
     }
   }
 
+  ev
+}
+
+seq_samp_prepare_ev <- function(ev){
+
+  # partition by imputation unit
   ev <- ev %>%
     split(f = ev %>% select(unit))
 
-  ### find maximal non-overlapping set within each unit
 
-  for (i in 1 : length(ev)) {
-    t_end <- ev[[i]]$t_end[1]
-    ev[[i]]$noncontig[1] <- TRUE
-
-    if (nrow(ev[[i]]) > 1) {
-      for (j in 2 : nrow(ev[[i]])) {
-        if (ev[[i]]$t_start[j] >= t_end) {
-          t_end <- ev[[i]]$t_end[j]
-          ev[[i]]$noncontig[j] <- TRUE
-        } else {
-          ev[[i]]$t_start_trunc[j] <- t_end
-        }
-      }
-
-      t_start <- Inf
-      for (j in nrow(ev[[i]]) : 2) { # noncontig[1] == TRUE
-        if (ev[[i]]$noncontig[j] == FALSE && ev[[i]]$t_end[j] > t_start) {
-          ev[[i]]$t_end_trunc[j] <- t_start
-        } else if (ev[[i]]$noncontig[j] == TRUE) {
-          t_start <- ev[[i]]$t_start[j]
-        }
-      }
+  impute_unit_ez <- list()
+  ez_index <- 1
+  impute_unit_compund <- list()
+  compund_index <- 1
+  for (i in 1:length(ev)){
+    if(nrow(ev[[i]]) == 1){
+      # find out easy imputation unit that only contains one T interval
+      # ev[[i]]$sim <- T
+      impute_unit_ez[[ez_index]] <- ev[[i]]
+      ez_index <- ez_index + 1
+    }else{
+      impute_unit_compund[[compund_index]] <- compound_impute_unit_prepare(ev[[i]])
+      compund_index <- compund_index + 1
     }
 
-    ev[[i]] <- ev[[i]] %>%
-      split(f = ev[[i]] %>% select(noncontig))
   }
 
+
+  # impute_unit_ez <- impute_unit_ez %>% do.call(rbind,.)
+
+
+  # covered_ints <- rbind(impute_unit_ez[,c(1,2)],
+  #      impute_unit_compund %>% lapply("[[","unit_range") %>% do.call(rbind,.)) %>%
+  #   collapse_interval_data(t_start, t_end)
   ### record covered intervals
+
+  impute_unit_single <- list(impute_unit_ez = impute_unit_ez,
+                             impute_unit_compund = impute_unit_compund)
 
   covered_ints <- list()
 
   for (i in 1 : length(ev)) {
     covered_ints[[i]] <- data.frame(
-      t_start = min(ev[[i]]$`TRUE`$t_start, ev[[i]]$`FALSE`$t_start),
-      t_end = max(ev[[i]]$`TRUE`$t_end, ev[[i]]$`FALSE`$t_end)
-      )
+      t_start = min(ev[[i]]$t_start, ev[[i]]$t_start),
+      t_end = max(ev[[i]]$t_end, ev[[i]]$t_end)
+    )
   }
 
-  attributes(ev)$covered_ints <- do.call("rbind", covered_ints) %>%
-    collapse_interval_data(t_start, t_end)
+  attributes(impute_unit_single)$covered_ints <- do.call("rbind", covered_ints) %>%
+    collapse_interval_data(t_start, t_end) %>% as.data.frame()
 
-  ev
+
+  return(impute_unit_single)
+
+}
+
+
+compound_impute_unit_prepare <- function(compound_impute_unit){
+  # for compound imputation unit first distinguish between
+  # Unit disjoint sub intervals vs Unit disjoint check intervals
+  impute_unit <- compound_impute_unit
+  impute_unit$sim <- FALSE
+  t_end <- impute_unit$t_end[1]
+  impute_unit$sim[1] <- TRUE
+  for (j in 2 : nrow(impute_unit)) {
+    if (impute_unit$t_start[j] >= t_end) {
+      t_end <- impute_unit$t_end[j]
+      impute_unit$sim[j] <- TRUE
+    }
+  }
+
+  sim_split <- impute_unit %>%
+    split(f = impute_unit %>% select(sim))
+
+
+  # Prepare for 1st round simulation
+  roundone <- vector("list", length = nrow(sim_split$`TRUE`))
+  inner_check_row_all <- c()
+  # check_interv_index <- 1:nrow(sim_split$`FALSE`)
+  for(j in 1 : nrow(sim_split$`TRUE`)){
+    # For each Unit disjoint sub F-interval
+    # Nothing needs preparing since no simulation there
+    # For each Unit disjoint sub T-interval, find
+    # a.	Inner Unit check sub interval covered by it
+    # b.  Outer Unit check sub interval overlapping with it
+
+    e_sim <- sim_split$`TRUE`[j,]
+    roundone[[j]]$sim <- e_sim
+    # outer_check_row <- inner_check_row <- c()
+
+
+    if(e_sim$e_max != 0){
+      inner_check_row <- with(sim_split$`FALSE`, t_start >= e_sim$t_start &  t_end <= e_sim$t_end)
+      check_row_all <- with(sim_split$`FALSE`, t_end >  e_sim$t_start & t_start < e_sim$t_end)
+
+
+      outer_check_row <- check_row_all & (!inner_check_row)
+
+      roundone[[j]]$inner_check <- sim_split$`FALSE`[inner_check_row,]
+      # for outer check, only upper bound is used hence delete those without upper bounds
+      # since check interval still covers other area, so lower bound can not contribute
+      roundone[[j]]$outer_check <- sim_split$`FALSE`[outer_check_row,] %>% filter(e_max != Inf)
+    }else{
+      roundone[[j]]$inner_check <- roundone[[j]]$outer_check <- data.frame(matrix(nrow = 0, ncol = 6))
+    }
+
+
+    if(any(inner_check_row)){
+      inner_check_row_all <- c(inner_check_row_all, which(inner_check_row))
+    }
+  }
+
+
+  # Prepare for 2st round simulation
+  left_over <- data.frame(t_start = sim_split$`TRUE`$t_end[-nrow(sim_split$`TRUE`)],
+            t_end = sim_split$`TRUE`$t_start[-1])
+  unit_end <- max(impute_unit$t_end)
+  left_over <- rbind(left_over, data.frame(t_start = last(sim_split$`TRUE`$t_end),
+                                  t_end = unit_end) )
+  left_over <- left_over[with(left_over, t_start != t_end) ,]
+
+
+  # Pick out outer unit check intervals, these have to be checked again in the final check
+  if(length(inner_check_row_all) != 0){
+    outer_check_all <- sim_split$`FALSE`[-inner_check_row_all,]
+  }else{
+    outer_check_all <- sim_split$`FALSE`
+  }
+
+
+  if(nrow(left_over) != 0){
+    roundtwo <- vector("list", length = nrow(left_over))
+    for(j in 1:nrow(left_over)){
+      # For each left over interval, find
+      #a.	Outer Unit check sub interval covering this left over interval
+      #b.	Outer Unit check sub interval overlapping with it
+      #These two must be T- intervals since all inner F intervals must be contained
+      #in a T-interval or disjoint with a T-interval for each T-interval after simplification.
+
+      e_leftover <- left_over[j,]
+      roundtwo[[j]]$leftover <- e_leftover
+
+      covered_row <- with(outer_check_all, t_start <= e_leftover$t_start &  t_end >= e_leftover$t_end)
+      overlap_row <- with(outer_check_all, t_end >  e_leftover$t_start & t_start < e_leftover$t_end)
+      # for check sub interval covering the left over, only upper bound is useful
+      # since check interval still covers other area
+      roundtwo[[j]]$covered <- outer_check_all[covered_row,] %>% filter(e_max != Inf)
+      # for check sub interval strictly overlapping with the left over, only upper bound is useful
+      # since check interval still covers other area
+      roundtwo[[j]]$overlap_strict <- outer_check_all[overlap_row & (!covered_row), ] %>% filter(e_max != Inf)
+
+    }
+  }else{
+    roundtwo <- NULL
+  }
+
+  return(list(roundone = roundone,
+              roundtwo = roundtwo,
+              outer_check_all = outer_check_all,
+              unit_range = data.frame(t_start = impute_unit$t_start[1],
+                                      t_end = unit_end)))
+
+
+}
+
+
+
+
+#' @title Build imputation units
+#'
+#' @description An imputation unit is a set of one or more pairwise overlapping
+#'              intervals on which the event history may be imputed
+#'              independently of all intervals outside of their union.
+#'
+#' @param ev The \code{ev} member of a \code{co_events_frame} object
+build_imputation_units_single <- function(ev) {
+ ev %>% simplify_ev %>% partition_ev %>% seq_samp_prepare_ev
 }
 
 build_imputation_units <- function(co_events_frame) {
