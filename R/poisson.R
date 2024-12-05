@@ -72,7 +72,7 @@ expect_cum_weibull_inverse <- function(m,
 #' @export
 expect_cum_weibull_tvc <- function(t,
                                    lin_pred = 0,
-                                   t_breaks = t,
+                                   t_breaks = Inf,
                                    shape = 1, scale = 1,
                                    k = shape, b = scale^(-shape),
                                    ...) {
@@ -94,6 +94,20 @@ expect_cum_weibull_tvc <- function(t,
     sum(diff(c(0, expect_cum_weibull(t_breaks, k = k, b = b))) * exp(lin_pred))
   })
 }
+
+
+
+#' @title expect_cum_weibull_tvc written in Rcpp
+#' @export
+expect_cum_weibull_tvc_Rcpp <- function(t,
+                                         lin_pred = 0,
+                                         t_breaks = Inf,
+                                         shape = 1, scale = 1,
+                                         k = shape, b = scale^(-shape),
+                                         ...){
+  expect_cum_weibull_tvc_cpp(t, lin_pred,t_breaks, k, b)
+}
+
 
 #' @title Inverse of Weibull expected cumulative event count with time-varying covariates
 #'
@@ -148,6 +162,17 @@ expect_cum_weibull_tvc_inverse <- function(m,
   })
 }
 
+#' @title expect_cum_weibull_tvc_inverse written in Rcpp
+#' @export
+expect_cum_weibull_tvc_inverse_Rcpp <- function(m,
+                                                lin_pred = 0,
+                                                t_breaks = Inf,
+                                                shape = 1, scale = 1,
+                                                k = shape, b = scale^(-shape),
+                                                ...){
+  expect_cum_weibull_tvc_inverse_cpp(m, lin_pred,t_breaks, k, b)
+}
+
 #' @title Truncated Poisson generation
 #'
 #' @description
@@ -189,10 +214,19 @@ expect_cum_weibull_tvc_inverse <- function(m,
 rpois_trunc <- function(n, lambda, min = 0, max = Inf,
                         parallel_draws = n * 2, max_tries = 1e3,
                         fail_mode = FALSE,
+                        rejection_sampler = FALSE,
                         ...) {
 
-  stopifnot(length(lambda) == 1)
-  stopifnot(lambda >= 0)
+  # stopifnot(length(lambda) == 1)
+  # stopifnot(lambda >= 0)
+
+  if(length(lambda) != 1){
+    stop("0 or more than 1 lambda has been given")
+  }
+
+  if(lambda < 0){
+    stop("a negative lambda has been given")
+  }
 
   if (lambda == 0) {
     if (min > 0) {
@@ -204,6 +238,25 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 
   if (min == max) {
     return(min)
+  } else if (rejection_sampler == TRUE & n == 1) {
+    for (try in 1 : max_tries) {
+      x <- rpois(n = 1, lambda = lambda)
+      if (min <= x & x <= max) {
+        return(n)
+      }
+    }
+    
+    if (fail_mode) {
+      warning(paste("Maximum number of rejection sampler iterations reached.",
+                    "Returning mode."))
+      if (lambda > max) {
+        return(rep(floor(max), n))
+      } else {
+        return(rep(floor(max(min, lambda)), n))
+      }
+    } else {
+      stop("Maximum number of rejection sampler iterations reached.")
+    }
   } else if (max < Inf) {
     return(
       sample(min : max, size = n, replace = TRUE,
@@ -215,9 +268,8 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
       m <- max(ceiling(min - 1 - lambda), 0)
       y <- rpois(parallel_draws, lambda)
       x_pro <- m + y
-      accept_prob <- exp(lfactorial(y) - lfactorial(x_pro) + lfactorial(min) -
-                           lfactorial(min - m)) * as.numeric(x_pro >= min)
-
+      accept_prob <- pmin(1, exp(lfactorial(y) - lfactorial(x_pro) + lfactorial(min) -
+                           lfactorial(min - m)) * as.numeric(x_pro >= min))
       x <- c(x, x_pro[as.logical(rbinom(parallel_draws, 1, accept_prob))])
 
       if (length(x) >= n) {
@@ -275,15 +327,59 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 simulate_nonhomog_inversion <- function(t_start, t_end,
                                         expect_cum_FUN, expect_cum_inverse_FUN,
                                         count_min = 0, count_max = Inf,
+                                        sorted_times = FALSE,
                                         ...) {
 
   m_start <- expect_cum_FUN(t_start, ...)
   m_end <- expect_cum_FUN(t_end, ...)
 
-  N <- rpois_trunc(1, lambda = m_end - m_start,
-                   min = count_min, max = count_max,
-                   ...)
-  z <- sort(runif(N, min = m_start, max = m_end))
+  if(count_min == 1 & count_max == Inf){
+    z <- generate_events_no0_poisson1(m_start, m_end)
+  }else{
+    N <- rpois_trunc(1, lambda = m_end - m_start,
+                     min = count_min, max = count_max,
+                     ...)
+    z <- runif(N, min = m_start, max = m_end)
+
+    if(sorted_times){
+      z <- sort(z)
+    }
+  }
+
 
   expect_cum_inverse_FUN(z, ...)
 }
+
+#' @title Simulate non-homogeneous Poisson process via inversion with condition on
+#' multiple non-contiguous intervals
+simulate_nonhomog_inversion_multi_interval <- function(interval_df,
+                                                       expect_cum_FUN, expect_cum_inverse_FUN,
+                                                       count_min = 0, count_max = Inf,
+                                                       sorted_times = FALSE,
+                                                       ...){
+  m_starts <- expect_cum_FUN(interval_df$t_start, ...)
+  m_ends <- expect_cum_FUN(interval_df$t_end, ...)
+  int_length <-  m_ends - m_starts
+  int_length_cumsum <- cumsum(int_length)
+  total_length <- last(int_length_cumsum)
+
+  if(count_min == 1 & count_max == Inf){
+    z_raw <- generate_events_no0_poisson1(0, total_length)
+  }else{
+    N <-  rpois_trunc(1, lambda = total_length,
+                      min = count_min, max = count_max,
+                      ...)
+    z_raw <- runif(N, min = 0, max = total_length)
+    if(sorted_times){
+      z_raw <- sort(z_raw)
+    }
+  }
+
+  z_raw_int_index <- findInterval(z_raw,int_length_cumsum, left.open = TRUE) + 1
+  z_raw_add <- z_raw - c(0, int_length_cumsum)[z_raw_int_index]
+  z <- m_starts[z_raw_int_index] + z_raw_add
+
+
+  expect_cum_inverse_FUN(z, ...)
+}
+

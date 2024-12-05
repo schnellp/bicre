@@ -43,8 +43,6 @@ collapse_interval_data <- function(data, t_start, t_end) {
 }
 
 #' @title Single-id helper for \code{complete_interval_data}
-#'
-#'
 complete_interval_data_single <- function(data, t_start, t_end,
                                           fill = NA, new_nodes = c()) {
 
@@ -287,7 +285,11 @@ merge_interval_data <- function(data, new_data,
 #'              containing the maximum number of events in each interval.
 #' @param fill A named list specifying the value of each time-varying covariate
 #'             that should be used for newly added rows.
-#'
+#' @param check_cov_cover_ev Logical value whether to check covariate time range cover event time range.
+#'If TRUE, then check.  If there are  time intervals in event time range but not in covariate time range,
+#'fill this part of the covariate with what has been specified for the "fill" parameter.
+#'If FALSE, then do not check. Choose FALSE only if you are certain the data you input do have covariate
+#'time range cover event time range.
 #' @return An object of class \code{co_events}.
 #'         A \code{co_events} object is a list indexed by IDs from the source
 #'         data objects. Each list element contains \code{covariates} and
@@ -312,20 +314,22 @@ merge_interval_data <- function(data, new_data,
 #' @export
 co_events <- function(data_covariates, data_events,
                       id, t_start, t_end, e_min, e_max,
-                      fill = NA) {
+                      fill = NA, check_cov_cover_ev = TRUE) {
 
+  # data_covariates$id <- as.character(data_covariates$id)
+  data_covariates <- data_covariates |> mutate({{ id }} := as.character({{ id }}))
+  # data_events$id <- as.character(data_events$id)
+  data_events <- data_events |> mutate({{ id }} := as.character({{ id }}))
   data_covariates <- data_covariates %>%
     mutate(across(where(is.character), as.factor))
 
   ids_covariates <- data_covariates %>%
     pull({{ id }}) %>%
-    unique() %>%
-    sort()
+    unique()
 
   ids_events <- data_events %>%
     pull({{ id }}) %>%
-    unique() %>%
-    sort()
+    unique()
 
   if (!all(ids_events %in% ids_covariates)) {
     ids_missing <- setdiff(ids_events, ids_covariates)
@@ -335,34 +339,49 @@ co_events <- function(data_covariates, data_events,
 
   }
 
-  data_covariates_list <- data_covariates %>%
+  data_covariates_list <- data_covariates %>% select(!{{ id }}) %>%
     split(f = data_covariates %>% select({{ id }}))
 
-  data_events_list <- data_events %>%
+  data_events_list <- data_events %>% select(!{{ id }}) %>%
     split(f = data_events %>% select({{ id }}))
 
   co_events <- list()
 
   # ignores IDs in data_events missing from data_covariates
   for (i in ids_covariates) {
-
+  # for (i in 1:length(ids_covariates)) {
     # make sure covariate intervals cover event intervals
-    covariate_nodes <- data_covariates_list[[i]] %>%
-      select(c({{ t_start }}, {{ t_end }})) %>%
-      unlist() %>%
-      unique()
+    if(check_cov_cover_ev){
+      #create new data frame only when necessary
 
-    event_nodes <- data_events_list[[i]] %>%
-      select(c({{ t_start }}, {{ t_end }})) %>%
-      unlist() %>%
-      unique()
+      data_covariates_range <- data_covariates_list[[i]] %>%
+        select(c({{ t_start }}, {{ t_end }})) %>%
+        collapse_interval_data({{ t_start }}, {{ t_end }})
 
-    data_covariates_list[[i]] <- data_covariates_list[[i]] %>%
-      complete_interval_data_single({{ t_start }}, {{ t_end }},
-                                    fill = fill,
-                                    new_nodes = c(min(event_nodes, covariate_nodes),
-                                                  max(event_nodes, covariate_nodes))) %>%
-      mutate({{ id }} := i)
+
+      covariate_nodes <- data_covariates_list[[i]] %>%
+        select(c({{ t_start }}, {{ t_end }})) %>%
+        unlist() %>%
+        unique()
+
+      event_nodes <- data_events_list[[i]] %>%
+        select(c({{ t_start }}, {{ t_end }})) %>%
+        unlist() %>%
+        unique()
+
+      if(!(nrow(data_covariates_range) == 1 &
+           min(covariate_nodes) <= min(event_nodes) &
+           max(covariate_nodes) >= max(event_nodes))){
+        data_covariates_list[[i]] <- data_covariates_list[[i]] %>%
+          complete_interval_data_single({{ t_start }}, {{ t_end }},
+                                        fill = fill,
+                                        new_nodes = c(min(event_nodes, covariate_nodes),
+                                                      max(event_nodes, covariate_nodes)))
+      }
+    }
+
+
+
 
     # pair covariate and event datasets
     co_events[[i]] <- list(
