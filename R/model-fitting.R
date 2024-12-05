@@ -1,26 +1,30 @@
-# exponential model only (not weibull!)
-log_likelihood_pois <- function(event_times,
-                                observed_intervals,
-                                log_rates,
-                                t_breaks) {
+log_lik_pois <- function(event_times,
+                         observed_intervals,
+                         lin_pred,
+                         t_breaks,
+                         weibull_shape = 1) {
 
   if (length(event_times) == 0) {
     log_rates_at_events <- 0
   } else {
     log_rates_at_events <- sapply(event_times, function(z) {
-      log_rates[z <= t_breaks][1]
+      lin_pred[z <= t_breaks][1] +
+        log(weibull_shape) +
+        (weibull_shape - 1) * log(z)
     })
   }
 
-
-
   interval_neg_expect_cum <-
     expect_cum_weibull_tvc(observed_intervals$t_start,
-                           lin_pred = log_rates,
-                           t_breaks = t_breaks) -
+                           lin_pred = lin_pred,
+                           t_breaks = t_breaks,
+                           shape = weibull_shape,
+                           scale = 1) -
     expect_cum_weibull_tvc(observed_intervals$t_end,
-                           lin_pred = log_rates,
-                           t_breaks = t_breaks)
+                           lin_pred = lin_pred,
+                           t_breaks = t_breaks,
+                           shape = weibull_shape,
+                           scale = 1)
 
   sum(log_rates_at_events, interval_neg_expect_cum)
 }
@@ -99,20 +103,20 @@ bicre <- function(formula, co_events,
     log_lik_cur <- sum(sapply(
       1 : length(z),
       function(i) {
-        log_likelihood_pois(
+        log_lik_pois(
           event_times = z[[i]],
           observed_intervals = attributes(iu[[i]]$ev)$covered_ints,
-          log_rates = iu[[i]]$X %*% coef_cur,
+          lin_pred = iu[[i]]$X %*% coef_cur,
           t_breaks = iu[[i]]$cov_t$t_end
         )
       }))
     log_lik_pro <- sum(sapply(
       1 : length(z),
       function(i) {
-        log_likelihood_pois(
+        log_lik_pois(
           event_times = z[[i]],
           observed_intervals = attributes(iu[[i]]$ev)$covered_ints,
-          log_rates = iu[[i]]$X %*% coef_pro,
+          lin_pred = iu[[i]]$X %*% coef_pro,
           t_breaks = iu[[i]]$cov_t$t_end
         )
       }))
