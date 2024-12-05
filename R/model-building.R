@@ -347,8 +347,8 @@ seq_samp_prepare_ev <- function(ev){
 
   impute_unit_ez <- list()
   ez_index <- 1
-  impute_unit_compund <- list()
-  compund_index <- 1
+  impute_unit_compound <- list()
+  compound_index <- 1
   for (i in 1:length(ev)){
     if(nrow(ev[[i]]) == 1){
       # find out easy imputation unit that only contains one T interval
@@ -356,8 +356,8 @@ seq_samp_prepare_ev <- function(ev){
       impute_unit_ez[[ez_index]] <- ev[[i]]
       ez_index <- ez_index + 1
     }else{
-      impute_unit_compund[[compund_index]] <- compound_impute_unit_prepare(ev[[i]])
-      compund_index <- compund_index + 1
+      impute_unit_compound[[compound_index]] <- compound_impute_unit_prepare(ev[[i]])
+      compound_index <- compound_index + 1
     }
 
   }
@@ -367,12 +367,12 @@ seq_samp_prepare_ev <- function(ev){
 
 
   # covered_ints <- rbind(impute_unit_ez[,c(1,2)],
-  #      impute_unit_compund %>% lapply("[[","unit_range") %>% do.call(rbind,.)) %>%
+  #      impute_unit_compound %>% lapply("[[","unit_range") %>% do.call(rbind,.)) %>%
   #   collapse_interval_data(t_start, t_end)
   ### record covered intervals
 
   impute_unit_single <- list(impute_unit_ez = impute_unit_ez,
-                             impute_unit_compund = impute_unit_compund)
+                             impute_unit_compound = impute_unit_compound)
 
   covered_ints <- list()
 

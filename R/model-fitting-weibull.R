@@ -124,7 +124,7 @@ event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix
 #'           and the \code{formula} argument;}
 #'           \item{\code{ev}}{A list consisting of two elements:
 #'           1. \code{impute_unit_ez} -- Simple imputation-units that only contains one T-zone.
-#'           2. \code{impute_unit_compund} -- Compound imputation-units and their derived special intervals and sets.}
+#'           2. \code{impute_unit_compound} -- Compound imputation-units and their derived special intervals and sets.}
 #'         }
 #' @export
 bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_cov_cover_ev = TRUE,

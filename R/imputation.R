@@ -360,15 +360,15 @@ impute_single_id <- function(co_events_frame_single,
 
 
   # simulate events for compound imputation units with sequential sampling
-  if(length(co_events_frame_single$ev$impute_unit_compund) > 0){
+  if(length(co_events_frame_single$ev$impute_unit_compound) > 0){
 
-    if(is.null(co_events_frame_single$ev$impute_unit_compund[[1]]$round_disjoint[[1]]$sim$int)){
+    if(is.null(co_events_frame_single$ev$impute_unit_compound[[1]]$round_disjoint[[1]]$sim$int)){
       round_disjoint_impute_fun <- round_disjoint_impute
     }else{
       round_disjoint_impute_fun <- round_disjoint_impute_w_tiny
     }
 
-    z_compound <- lapply(co_events_frame_single$ev$impute_unit_compund,
+    z_compound <- lapply(co_events_frame_single$ev$impute_unit_compound,
                 sample_sequential,
                 expect_cum_FUN = expect_cum_FUN,
                 expect_cum_inverse_FUN = expect_cum_inverse_FUN,
@@ -422,17 +422,17 @@ impute_single_id_initialize <- function(co_events_frame_single,
 
 
   # simulate events for compound imputation units with sequential sampling
-  if(length(co_events_frame_single$ev$impute_unit_compund) > 0){
+  if(length(co_events_frame_single$ev$impute_unit_compound) > 0){
 
-    if(is.null(co_events_frame_single$ev$impute_unit_compund[[1]]$round_disjoint[[1]]$sim$int)){
+    if(is.null(co_events_frame_single$ev$impute_unit_compound[[1]]$round_disjoint[[1]]$sim$int)){
       round_disjoint_impute_fun <- round_disjoint_impute
     }else{
       round_disjoint_impute_fun <- round_disjoint_impute_w_tiny
     }
 
     z_compound <- list()
-    for(j in 1:length(co_events_frame_single$ev$impute_unit_compund)){
-     events_imputed <- sample_sequential_initialize(co_events_frame_single$ev$impute_unit_compund[[j]],
+    for(j in 1:length(co_events_frame_single$ev$impute_unit_compound)){
+     events_imputed <- sample_sequential_initialize(co_events_frame_single$ev$impute_unit_compound[[j]],
                                                       expect_cum_FUN = expect_cum_FUN,
                                                       expect_cum_inverse_FUN = expect_cum_inverse_FUN,
                                                       lin_pred = lin_pred,
