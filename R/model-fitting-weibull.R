@@ -32,9 +32,9 @@ log_normal_uis.var <- function(uis.var, log_uis.var.mean = 0, log_uis.var.sd = 3
 #   for(ii in 1:length(iu)){
 #     Xmatrix.list[[ii]] <- iu[[ii]]$X[
 #       1 + findInterval(event_time_list[[ii]],
-#                        iu[[ii]]$cov_t$t_end,left.open = T),,drop=FALSE] %>% data.table
+#                        iu[[ii]]$cov_t$t_end,left.open = T),,drop=FALSE] |> data.table
 #   }
-#   rbindlist(Xmatrix.list) %>% as.matrix
+#   rbindlist(Xmatrix.list) |> as.matrix
 # }
 
 Xmatrix.lik <- function(event_time_list, iu, mc.cores = 1L){
@@ -44,8 +44,8 @@ Xmatrix.lik <- function(event_time_list, iu, mc.cores = 1L){
                      iu[[ii]]$cov_t$t_end,left.open = T),,drop=FALSE],
     mc.cores = mc.cores)
 
-  (rbindlist(Xmatrix.list)  %>%
-      mutate("(Intercept)" = 1, .before = 1) %>% as.matrix)[,colnames(iu[[1]]$X)]
+  (rbindlist(Xmatrix.list)  |>
+      mutate("(Intercept)" = 1, .before = 1) |> as.matrix())[,colnames(iu[[1]]$X)]
 }
 
 
@@ -53,7 +53,7 @@ Xmatrix.lik <- function(event_time_list, iu, mc.cores = 1L){
 event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix,
                                iu, mc.cores = 1L){
   log(k) * z.counts.sum + (k - 1) * log.z.sum +  sum(XAllMatrix %*% coef) +
-    (1:length(iu) %>% mclapply(function(i){
+    (1:length(iu) |> mclapply(function(i){
       expect_cum_weibull_tvc_Rcpp(attributes(iu[[i]]$ev)$covered_ints$t_start,
                                   lin_pred = iu[[i]]$X %*% coef,
                                   t_breaks = iu[[i]]$cov_t$t_end,
@@ -64,7 +64,7 @@ event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix
                                     t_breaks = iu[[i]]$cov_t$t_end,
                                     k = k,
                                     b = uis[i])
-    }, mc.cores = mc.cores) %>% unlist %>% sum)
+    }, mc.cores = mc.cores) |> unlist() |> sum())
 
 
 
@@ -133,8 +133,8 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
                   id, t_start, t_end, e_min, e_max,
                   fill = fill, check_cov_cover_ev = check_cov_cover_ev)
 
-  iu <- ce %>%
-    co_events_frame(formula = formula) %>%
+  iu <- ce |>
+    co_events_frame(formula = formula) |>
     build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style, verbose = verbose)
 
   iu
@@ -261,13 +261,13 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
                           prepare_style = "normal",
                           iu = co_events(data.cov, data.obs,
                                          id, t_start, t_end, e_min, e_max,
-                                         fill, check_cov_cover_ev) %>%
-                                        co_events_frame(formula = formula) %>%
+                                         fill, check_cov_cover_ev) |>
+                                        co_events_frame(formula = formula) |>
                                         build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style),
                           trace.start = list(k = 1,
                                              uis.var = 0.5,
                                              coef = rep(0,times = ncol(iu[[1]]$X))),
-                          uis.start = rep(1, iu %>% length),
+                          uis.start = rep(1, iu |> length()),
                           fail_mode = FALSE,
                           run_and_save = TRUE,
                           run_and_print = FALSE,
@@ -297,7 +297,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
 
   # preparation for MCMC
   n_iter <- n.burnin + n.keep
-  trace <- matrix(NA, nrow = n_iter, ncol = unlist(trace.start) %>% length)
+  trace <- matrix(NA, nrow = n_iter, ncol = unlist(trace.start) |> length())
   colnames(trace) <- c("log(k)", "log(uis.var)", "log(b)" ,colnames(iu[[1]]$X)[-1])
   trace[1, ] <- unlist(trace.start)
   trace[1, c("log(k)", "log(uis.var)")]  <- log(trace[1, c("log(k)", "log(uis.var)")])
@@ -373,7 +373,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
       }
 
 
-      z.counts <- z_list %>% sapply(length)
+      z.counts <- z_list |> sapply(length)
 
       # uis update
       shapes <- z.counts + 1/uis.var
@@ -397,7 +397,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
       # uis.var update
       u.uis.var <- rnorm(1,mean = 0, sd = 1)
       uis.var.ori <- uis.var
-      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) %>% exp
+      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) |> exp()
 
       log.lik.uisvar.ori <- log.lik.uisvar(uis, uis.var.ori) +
         prior_dist_uis.var(uis.var.ori)
@@ -412,7 +412,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
       }
 
       if(iter <= n.burnin){
-        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) %>%  as.vector()
+        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) |>  as.vector()
       }
 
 
@@ -426,7 +426,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
 
       # likelihood calculation preparation
       z.counts.sum <- sum(z.counts)
-      log.z.sum <- sum(log(z_list %>% unlist))
+      log.z.sum <- sum(log(z_list |> unlist()))
       XAllMatrix <- Xmatrix.lik(z_list, iu, mc.cores = mc.cores)
 
       loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
@@ -571,7 +571,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc.cores = 1L, keep_goin
       }
 
 
-      z.counts <- z_list %>% sapply(length)
+      z.counts <- z_list |> sapply(length)
 
       # uis update
       shapes <- z.counts + 1/uis.var
@@ -595,7 +595,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc.cores = 1L, keep_goin
       # uis.var update
       u.uis.var <- rnorm(1,mean = 0, sd = 1)
       uis.var.ori <- uis.var
-      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) %>% exp
+      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) |> exp()
 
       log.lik.uisvar.ori <- log.lik.uisvar(uis, uis.var.ori) +
         prior_dist_uis.var(uis.var.ori)
@@ -610,7 +610,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc.cores = 1L, keep_goin
       }
 
       if(iter <= n.burnin){
-        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) %>%  as.vector()
+        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) |>  as.vector()
       }
 
 
@@ -624,7 +624,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc.cores = 1L, keep_goin
 
       # likelihood calculation preparation
       z.counts.sum <- sum(z.counts)
-      log.z.sum <- sum(log(z_list %>% unlist))
+      log.z.sum <- sum(log(z_list |> unlist()))
       XAllMatrix <- Xmatrix.lik(z_list, iu, mc.cores = mc.cores)
 
       loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
@@ -705,13 +705,13 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
                           prepare_style = "normal",
                           iu = co_events(data.cov, data.obs,
                                          id, t_start, t_end, e_min, e_max,
-                                         fill, check_cov_cover_ev) %>%
-                            co_events_frame(formula = formula) %>%
+                                         fill, check_cov_cover_ev) |>
+                            co_events_frame(formula = formula) |>
                             build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style),
                           trace.start = list(k = 1,
                                              uis.var = 0.5,
                                              coef = rep(0,times = ncol(iu[[1]]$X))),
-                          uis.start = rep(1, iu %>% length),
+                          uis.start = rep(1, iu |> length()),
                           fail_mode = FALSE,
                           run_and_save = TRUE,
                           run_and_print = FALSE,
@@ -741,7 +741,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
 
   # preparation for MCMC
   n_iter <- n.burnin + n.keep
-  trace <- matrix(NA, nrow = n_iter, ncol = unlist(trace.start) %>% length)
+  trace <- matrix(NA, nrow = n_iter, ncol = unlist(trace.start) |> length())
   colnames(trace) <- c("log(k)", "log(uis.var)", "log(b)" ,colnames(iu[[1]]$X)[-1])
   trace[1, ] <- unlist(trace.start)
   trace[1, c("log(k)", "log(uis.var)")]  <- log(trace[1, c("log(k)", "log(uis.var)")])
@@ -817,7 +817,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
       }
 
 
-      z.counts <- z_list %>% sapply(length)
+      z.counts <- z_list |> sapply(length)
 
       # uis update
       shapes <- z.counts + 1/uis.var
@@ -842,7 +842,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
       # uis.var update
       u.uis.var <- rnorm(1,mean = 0, sd = 1)
       uis.var.ori <- uis.var
-      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) %>% exp
+      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) |> exp()
 
       log.lik.uisvar.ori <- log.lik.uisvar(uis, uis.var.ori) +
         prior_dist_uis.var(uis.var.ori)
@@ -857,7 +857,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
       }
 
       if(iter <= n.burnin){
-        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) %>%  as.vector()
+        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) |>  as.vector()
       }
 
 
@@ -871,7 +871,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
 
       # likelihood calculation preparation
       z.counts.sum <- sum(z.counts)
-      log.z.sum <- sum(log(z_list %>% unlist))
+      log.z.sum <- sum(log(z_list |> unlist()))
       XAllMatrix <- Xmatrix.lik(z_list, iu, mc.cores = mc.cores)
 
       loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
@@ -1005,7 +1005,7 @@ bicre_weibull_continue_ltgamma <- function(stop_file_dir, seed, mc.cores = 1L, k
       }
 
 
-      z.counts <- z_list %>% sapply(length)
+      z.counts <- z_list |> sapply(length)
 
       # uis update
       shapes <- z.counts + 1/uis.var
@@ -1029,7 +1029,7 @@ bicre_weibull_continue_ltgamma <- function(stop_file_dir, seed, mc.cores = 1L, k
       # uis.var update
       u.uis.var <- rnorm(1,mean = 0, sd = 1)
       uis.var.ori <- uis.var
-      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) %>% exp
+      uis.var.pro <- (log(uis.var.ori) + S.uis.var * u.uis.var) |> exp()
 
       log.lik.uisvar.ori <- log.lik.uisvar(uis, uis.var.ori) +
         prior_dist_uis.var(uis.var.ori)
@@ -1044,7 +1044,7 @@ bicre_weibull_continue_ltgamma <- function(stop_file_dir, seed, mc.cores = 1L, k
       }
 
       if(iter <= n.burnin){
-        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) %>%  as.vector()
+        S.uis.var <-  ramcmc::adapt_S(S.uis.var, u.uis.var, acceptance.prob.uis.var, iter - 1) |>  as.vector()
       }
 
 
@@ -1058,7 +1058,7 @@ bicre_weibull_continue_ltgamma <- function(stop_file_dir, seed, mc.cores = 1L, k
 
       # likelihood calculation preparation
       z.counts.sum <- sum(z.counts)
-      log.z.sum <- sum(log(z_list %>% unlist))
+      log.z.sum <- sum(log(z_list |> unlist()))
       XAllMatrix <- Xmatrix.lik(z_list, iu, mc.cores = mc.cores)
 
       loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
