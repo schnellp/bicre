@@ -345,6 +345,12 @@ co_events <- function(data_covariates, data_events,
   data_events_list <- data_events %>% select(!{{ id }}) %>%
     split(f = data_events %>% select({{ id }}))
 
+  for (i in names(data_events_list)) {
+    data_events_list[[i]] <- data_events_list[[i]] |>
+      mutate({{ id }} := as.character(i)) |>
+      relocate({{ id }})
+  }
+
   co_events <- list()
 
   # ignores IDs in data_events missing from data_covariates
@@ -376,7 +382,9 @@ co_events <- function(data_covariates, data_events,
           complete_interval_data_single({{ t_start }}, {{ t_end }},
                                         fill = fill,
                                         new_nodes = c(min(event_nodes, covariate_nodes),
-                                                      max(event_nodes, covariate_nodes)))
+                                                      max(event_nodes, covariate_nodes))) %>%
+          mutate({{ id }} := as.character(i)) |>
+          relocate({{ id }})
       }
     }
 
