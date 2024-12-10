@@ -57,76 +57,6 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 }
 
 
-#' @title Preprocess Data to derive special intervals and sets for \link{bicre}
-#' @description This function is used to preprocess data to produce a list that
-#' can be directly used for MCMC iterations without further data processing.
-#' The produced list contains derived special intervals and sets from data observations
-#' for optimized rejection sampling.
-#'
-#'
-#' @param formula A formula with a format of ~ \eqn{A_1 + A_2 + \cdots + A_n} where \eqn{A_1, A_2, ..., A_n}
-#' are chosen column names of \code{data_covariates} representing user chosen predictors for the analysis.
-#'  E.g. if \code{data_covariates} contain predictor column names "trt", "age", "gender"
-#' a formula of ~ trt + age means using "trt" and "age" column in the \code{data_covariates} dataframe
-#' as the predictor variables for preprocessing and MCMC algorithm.
-#' @param data_covariates A dataframe containing information for covariates values in different time intervals.
-#' The first column and the last two columns are named "id", "t_start", and "t_end".
-#' The other columns are covariate values.
-#' Each row represents individual "id"'s covariate values between time "t_start" and "t_end".
-#' E.g. if \code{data_covariates} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
-#' The first row of \code{data_covariates} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
-#' and "age" of 30 between time 0 and time 10.
-#' @param data_events A dataframe containing observations for the study outcome recurrent events.
-#' \code{data_events} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
-#' Each row of \code{data_events} is an observation representing that the recurrent event counts is between
-#'  "e_min" and "e_max" for the time interval ("e_min", "e_max"] for individual "id".
-#' @param fill A named list specifying the value of each time-varying covariate
-#'             that should be used for newly added rows. See \link{co_events}
-#' @param check_cov_cover_ev Logical value whether to check covariate time range cover event time range.  See \link{co_events}
-#' @param tiny_diff The threshold for differentiate between T-zones of tiny length (tiny T-zones) and other T-zones.
-#' If a T-zone has a length smaller than tiny_diff, it is treated as a tiny T-zone for the preprocessing otherwise it is treated as other T-zones.
-#' @param prepare_style The method used to rank non-tiny T-zones when determining the disjoint set of compound imputation-units.
-#' Available options are  "target_emin", "target_min", "target_max", or "normal".
-#' "target_emin": order non-tiny T-zones by decreasing minimum count when they are chosen into the disjoint set.
-#' This is the default option since it is the fastest by our simulation study.
-#' "target_min": order T-zones by decreasing minimum count rate when they are chosen into the disjoint set.
-#' "target_max": order T-zones by increasing maximum count rate when they are chosen into the disjoint set.
-#' "normal": order T-zones by "t_start" when they are chosen into the disjoint set.
-#' @param verbose Logical value. TRUE will print info on whether you are using tiny T-zones to process data and number of individuals
-#' processed in hundreds. FALSE will not print this info.
-#'
-#' @return An object of class \code{co_events_frame} that can be directly used to run the MCMC algorithm in \link{bicre}.
-#'         In addition to the components of the given \code{co_events} object (See \link{co_events}),
-#'         each list element has the following sub-elements:
-#'         \describe{
-#'           \item{\code{covariates}}{a data frame built from \code{covariates}
-#'           and the \code{formula} argument;}
-#'           \item{\code{events}}{a data frame built from \code{data_events}
-#'           containing the data observations for each individual;}
-#'           \item{\code{cov_t}}{the \code{t_start} and \code{t_end}
-#'           columns of \code{covariates} with standardized variable
-#'           names \code{"t_start"} and \code{"t_end"};}
-#'           \item{\code{X}}{a model matrix built from \code{covariates}
-#'           and the \code{formula} argument;}
-#'           \item{\code{ev}}{A list consisting of two elements:
-#'           1. \code{impute_unit_ez} -- Simple imputation-units that only contains one T-zone.
-#'           2. \code{impute_unit_compound} -- Compound imputation-units and their derived special intervals and sets.}
-#'         }
-#' @export
-bicre_prepare <- function(formula, data_covariates, data_events, fill = NA,check_cov_cover_ev = TRUE,
-                                  tiny_diff, prepare_style, verbose = FALSE){
-  ce <- co_events(data_covariates, data_events,
-                  id, t_start, t_end, e_min, e_max,
-                  fill = fill, check_cov_cover_ev = check_cov_cover_ev)
-
-  iu <- ce |>
-    co_events_frame(formula = formula) |>
-    build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style, verbose = verbose)
-
-  iu
-}
-
-
 #' @title Bayesian Data augmentation for censored recurrent events with Weibull baseline hazard
 #' @description This function applies the Bayesian data augmentation method on the
 #'  input censored recurrent events data assuming
@@ -195,7 +125,7 @@ bicre_prepare <- function(formula, data_covariates, data_events, fill = NA,check
 # "target_max": order T-zones by increasing maximum count rate when they are chosen into the disjoint set.
 # "normal": order T-zones by "t_start" when they are chosen into the disjoint set.
 #' @param iu An object of class \code{co_events_frame} containing special intervals and sets for optimized rejection sampling.
-#' This object is derived using \link{birce_weibull_prepare} function.
+#' This object is derived using \link{build_imputation_units} function.
 #' When this argument has been given a value, the following arguments are all ignored:
 #'  \code{data_covariates}, \code{data_events}, \code{fill}, \code{check_cov_cover_ev}, \code{formula}, \code{tiny_diff}, \code{prepare_style }
 #' Otherwise \code{iu}'s default value is calculated from these arguments.
