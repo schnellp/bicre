@@ -175,6 +175,8 @@ bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = 
 #'  Here \eqn{\sigma^2} is the random effects' variance.
 #' This function takes in the current value of random effects variance and output \eqn{\sigma^2}'s prior probability density at its current value.
 #' Default prior is a log normal distribution with mean 0 and standard deviation 3.
+#' @param truncate_uis If FALSE (default) or 0, do not truncate the random effect distribution.
+#'                     If >0, left-truncate at given value.
 #' @param seed The seed to set for running the MCMC iteration.
 #' @param tiny_diff The threshold for differentiate between T-zones of tiny length (tiny T-zones) and other T-zones.
 #' If a T-zone has a length smaller than tiny_diff, it is treated as a tiny T-zone for the preprocessing otherwise it is treated as other T-zones.
@@ -206,7 +208,7 @@ bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = 
 #' }
 #'
 #'
-#' @param uis.start A vector with a length equal to the number of individuals.
+#' @param uis_start A vector with a length equal to the number of individuals.
 #' This vector specifies the starting values of random effects.
 #' Default to a vector with all values being 1.
 #' @param fail_mode Logical. See \link{rpois_trunc}.
@@ -248,6 +250,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
                           prior_dist_b = log_normal_b,
                           prior_dist_coef = normal_coef,
                           prior_dist_uis_var =  log_normal_uis_var,
+                          truncate_uis = FALSE,
                           seed = 11374,
                           tiny_diff = NULL,
                           prepare_style = "normal",
@@ -255,7 +258,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
                           trace_start = list(k = 1,
                                              uis_var = 0.5,
                                              coef = rep(0,times = ncol(iu[[1]]$X))),
-                          uis.start = rep(1, iu |> length()),
+                          uis_start = rep(1, iu |> length()),
                           fail_mode = FALSE,
                           run_and_save = TRUE,
                           run_and_print = FALSE,
@@ -315,7 +318,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
   names(accept) <- c("uis_var", "kcoef")
 
   list2env(trace_start, envir = environment())
-  uis <- uis.start
+  uis <- uis_start
 
   est.cov <- diag(1 + length(coef)) * 0.25
   S.logkcoef <- t(chol(est.cov))
@@ -400,7 +403,14 @@ bicre_weibull <- function(formula, data_covariates, data_events,
           },1:length(iu), mc.cores = mc_cores)
         )
         )
-      uis <- rgamma(length(z_counts),shape = shapes, scale = scales)
+
+      if (truncate_uis) {
+        uis <- ltrgamma(length(z_counts), shape = shapes, scale = scales,
+                        truncate = truncate_uis)
+      } else {
+        uis <- rgamma(length(z_counts), shape = shapes, scale = scales)
+      }
+
 
 
       # uis_var update
@@ -597,7 +607,13 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_goin
           },1:length(iu), mc.cores = mc_cores)
         )
         )
-      uis <- rgamma(length(z_counts),shape = shapes, scale = scales)
+
+      if (truncate_uis) {
+        uis <- ltrgamma(length(z_counts), shape = shapes, scale = scales,
+                        truncate = truncate_uis)
+      } else {
+        uis <- rgamma(length(z_counts), shape = shapes, scale = scales)
+      }
 
 
       # uis_var update
@@ -697,438 +713,3 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_goin
                 accept_rate = round(accept/n_iter, 2)))
   }
 }
-
-
-#' @title Bayesian imputation for censored recurrent events with weibull baseline hazard with left truncated gamma distribution for uis
-#'
-#' @export
-bicre_weibull_ltgamma <- function(formula, data_covariates, data_events, fill = NA, check_cov_cover_ev = TRUE,
-                          n_burn_in = 5000, n_keep = 10000,
-                          prior_dist_k = log_normal_k,
-                          prior_dist_b = log_normal_b,
-                          prior_dist_coef = normal_coef,
-                          prior_dist_uis_var =  log_normal_uis_var,
-                          seed = 11374,
-                          tiny_diff = NULL,
-                          prepare_style = "normal",
-                          iu = co_events(data_covariates, data_events,
-                                         id, t_start, t_end, e_min, e_max,
-                                         fill, check_cov_cover_ev) |>
-                            co_events_frame(formula = formula) |>
-                            build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style),
-                          trace_start = list(k = 1,
-                                             uis_var = 0.5,
-                                             coef = rep(0,times = ncol(iu[[1]]$X))),
-                          uis.start = rep(1, iu |> length()),
-                          fail_mode = FALSE,
-                          run_and_save = TRUE,
-                          run_and_print = FALSE,
-                          iter_per_save = 1000,
-                          iter_per_print = iter_per_save,
-                          save_folder = NULL,
-                          mc_cores = 1L,
-                          keep_going = FALSE){
-  #decisions on print and save iterations
-
-  if(run_and_save){
-    if(!is.null(save_folder)){
-      dir.create(file.path(save_folder), showWarnings = FALSE, recursive = TRUE)
-      save_prefix <- file.path(save_folder, "trace")
-    }else{
-      save_prefix <- "trace"
-    }
-
-    if(iter_per_print == iter_per_save){
-      run_and_print <- FALSE
-    }
-
-  }
-
-
-
-
-  # preparation for MCMC
-  n_iter <- n_burn_in + n_keep
-  trace <- matrix(NA, nrow = n_iter, ncol = unlist(trace_start) |> length())
-  colnames(trace) <- c("log(k)", "log(uis_var)", "log(b)" ,colnames(iu[[1]]$X)[-1])
-  trace[1, ] <- unlist(trace_start)
-  trace[1, c("log(k)", "log(uis_var)")]  <- log(trace[1, c("log(k)", "log(uis_var)")])
-
-  accept <- rep(0, 2)
-  names(accept) <- c("uis_var", "kcoef")
-
-  list2env(trace_start, envir = environment())
-  uis <- uis.start
-
-  est.cov <- diag(1 + length(coef)) * 0.25
-  S.logkcoef <- t(chol(est.cov))
-  S_uis_var <-  0.25
-
-  #### MCMC run
-  set.seed(seed)
-
-
-
-  we_catch <- tryCatch(expr = {
-    not_finish <- TRUE
-    for (iter in 2 : n_iter) {
-
-      if(run_and_print){
-        if(iter %% iter_per_print == 0){
-          print(iter)
-        }
-      }
-
-
-
-
-      # imputation
-
-
-      if(iter == 2){
-        z_list <- list()
-
-        for (i in 1:length(iu)) {
-          t <- 0
-          repeat{
-            t <- t + 1
-            event_times_i <-impute_single_id_initialize(co_events_frame_single = iu[[i]],
-                                                        b = uis[i], coef = coef, expect_cum_FUN = expect_cum_weibull_tvc_Rcpp,
-                                                        expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse_Rcpp,
-                                                        k = k)
-            if(class(event_times_i) ==  "numeric"){
-              z_list[[i]] <- event_times_i
-              break
-            }else if(event_times_i == "Sequential sampling: larger ui needed"){
-              uis[i] <- uis[i] * 2
-            }else if(event_times_i == "Sequential sampling: smaller ui needed"){
-              uis[i] <- uis[i] / 1.5
-            }else{
-              stop("imputation initialize has unexpected errors")
-            }
-
-            if(t > 15){
-              stop("imputation initialize failed to find a proper starting value")
-            }
-
-          }
-
-        }
-
-      }else{
-
-        z_list <- mcmapply(impute_single_id, co_events_frame_single = iu, b = uis,
-                           MoreArgs = list(coef = coef, expect_cum_FUN = expect_cum_weibull_tvc_Rcpp,
-                                           expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse_Rcpp,
-                                           k = k, fail_mode = fail_mode),
-                           mc.cores = mc_cores)
-      }
-
-
-      z_counts <- z_list |> sapply(length)
-
-      # uis update
-      shapes <- z_counts + 1/uis_var
-      scales <- uis_var /
-        (1 + uis_var * (
-          mcmapply(function(i){
-            sum( - expect_cum_weibull_tvc_Rcpp(attributes(iu[[i]]$ev)$covered_ints$t_start,
-                                               lin_pred = iu[[i]]$X %*% coef,
-                                               t_breaks = iu[[i]]$cov_t$t_end,
-                                               k = k) +
-                   expect_cum_weibull_tvc_Rcpp(attributes(iu[[i]]$ev)$covered_ints$t_end,
-                                               lin_pred = iu[[i]]$X %*% coef,
-                                               t_breaks = iu[[i]]$cov_t$t_end,
-                                               k = k))
-          },1:length(iu), mc.cores = mc_cores)
-        )
-        )
-
-      uis <- ltrgamma(length(z_counts),shapes = shapes, scales = scales, truncate = 0.01)
-
-
-      # uis_var update
-      u_uis_var <- rnorm(1,mean = 0, sd = 1)
-      uis_var_ori <- uis_var
-      uis_var_pro <- (log(uis_var_ori) + S_uis_var * u_uis_var) |> exp()
-
-      log_lik_uis_var_ori <- log_lik_uis_var(uis, uis_var_ori) +
-        prior_dist_uis_var(uis_var_ori)
-      log_lik_uis_var_pro <- log_lik_uis_var(uis, uis_var_pro) +
-        prior_dist_uis_var(uis_var_pro)
-
-      acceptance_prob_uis_var <- min(1, exp((log_lik_uis_var_pro) - (log_lik_uis_var_ori)))
-
-      if (rbinom(1, 1, prob = acceptance_prob_uis_var)) {
-        uis_var <- uis_var_pro
-        accept["uis_var"] <- accept["uis_var"] + 1
-      }
-
-      if(iter <= n_burn_in){
-        S_uis_var <-  ramcmc::adapt_S(S_uis_var, u_uis_var, acceptance_prob_uis_var, iter - 1) |>  as.vector()
-      }
-
-
-      # k and coef update
-      kcoef.ori <- c(k, coef)
-      logkcoef.ori <- c(log(k), coef)
-      u.logkcoef <- rnorm(length(logkcoef.ori), 0, sd = 1)
-      logkcoef.pro <- logkcoef.ori + S.logkcoef %*% u.logkcoef
-      kcoef.pro <- c(exp(logkcoef.pro[1]), logkcoef.pro[-1])
-
-
-      # likelihood calculation preparation
-      z_counts.sum <- sum(z_counts)
-      log.z.sum <- sum(log(z_list |> unlist()))
-      XAllMatrix <- Xmatrix_lik(z_list, iu, mc_cores = mc_cores)
-
-      loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
-                                             z_counts.sum = z_counts.sum, log.z.sum = log.z.sum,
-                                             XAllMatrix = XAllMatrix, iu = iu, mc_cores = mc_cores) +
-        prior_dist_k(kcoef.ori[1]) +
-        prior_dist_b(exp(kcoef.ori[2])) +
-        prior_dist_coef(kcoef.ori[-c(1,2)])
-
-
-
-      loglik.kcoef.pro <- event.times.loglik(k = kcoef.pro[1], coef = kcoef.pro[-1], uis = uis,
-                                             z_counts.sum = z_counts.sum, log.z.sum = log.z.sum,
-                                             XAllMatrix = XAllMatrix, iu = iu, mc_cores = mc_cores) +
-        prior_dist_k(kcoef.pro[1]) +
-        prior_dist_b(exp(kcoef.pro[2])) +
-        prior_dist_coef(kcoef.pro[-c(1,2)])
-
-      acceptance.prob.kcoef <- min(1, exp((loglik.kcoef.pro ) - (loglik.kcoef.ori )))
-
-      if(rbinom(1,1,prob = acceptance.prob.kcoef)) {
-        k <- kcoef.pro[1]
-        coef <- kcoef.pro[-1]
-        accept["kcoef"] <- accept["kcoef"] + 1
-      }
-
-      if(iter <= n_burn_in){
-        S.logkcoef <- ramcmc::adapt_S(S.logkcoef, u.logkcoef, acceptance.prob.kcoef, iter - 1)
-      }
-
-      ###  record the traces
-      trace[iter,] <- c(log(k), log(uis_var), coef)
-      if(run_and_save){
-        if(iter %% iter_per_save == 0){
-          print(iter)
-          save(list = ls(all.names = TRUE),
-               file = paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""))
-        }
-      }
-
-    }
-    not_finish <- FALSE
-  },
-  # warning=function(w){print(w)},
-  error=function(e){print(e)},
-  finally = {      if(not_finish & run_and_save){
-    print(iter)
-    save(list = ls(all.names = TRUE),
-         file = paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""))
-  }})
-
-  if(inherits(we_catch, c("error","warning"))){
-    if(keep_going){
-      return(bicre_weibull_continue_ltgamma(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
-                                    seed, keep_going = keep_going))
-    }else{
-      stop(we_catch)
-    }
-  }else{
-    print("target number iterations reached")
-    return(list(trace = trace,
-                accept_rate = round(accept/n_iter, 2)))
-  }
-
-
-
-}
-
-
-#' @title Continue Bayesian imputation for censored recurrent events with weibull baseline hazard with left truncated gamma dist for uis
-#'
-#' @export
-bicre_weibull_continue_ltgamma <- function(stop_file_dir, seed, mc_cores = 1L, keep_going = FALSE){
-  load(stop_file_dir, envir = environment())
-  iter_current <- iter
-  set.seed(seed)
-
-  we_catch <- tryCatch(expr = {
-    not_finish <- TRUE
-    for (iter in iter_current : n_iter) {
-
-      if(run_and_print){
-        if(iter %% iter_per_print == 0){
-          print(iter)
-        }
-      }
-
-
-
-
-      # imputation
-
-
-      if(iter == 2){
-        z_list <- list()
-
-        for (i in 1:length(iu)) {
-          t <- 0
-          repeat{
-            t <- t + 1
-            event_times_i <-impute_single_id_initialize(co_events_frame_single = iu[[i]],
-                                                        b = uis[i], coef = coef, expect_cum_FUN = expect_cum_weibull_tvc_Rcpp,
-                                                        expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse_Rcpp,
-                                                        k = k)
-            if(class(event_times_i) ==  "numeric"){
-              z_list[[i]] <- event_times_i
-              break
-            }else if(event_times_i == "Sequential sampling: larger ui needed"){
-              uis[i] <- uis[i] + 1
-            }else if(event_times_i == "Sequential sampling: smaller ui needed"){
-              uis[i] <- uis[i] - 1
-            }else{
-              stop("imputation initialize has unexpected errors")
-            }
-
-            if(t > 15){
-              stop("imputation initialize failed to find a proper starting value")
-            }
-
-          }
-
-        }
-
-      }else{
-
-        z_list <- mcmapply(impute_single_id, co_events_frame_single = iu, b = uis,
-                           MoreArgs = list(coef = coef, expect_cum_FUN = expect_cum_weibull_tvc_Rcpp,
-                                           expect_cum_inverse_FUN = expect_cum_weibull_tvc_inverse_Rcpp,
-                                           k = k, fail_mode = fail_mode),
-                           mc.cores = mc_cores)
-      }
-
-
-      z_counts <- z_list |> sapply(length)
-
-      # uis update
-      shapes <- z_counts + 1/uis_var
-      scales <- uis_var /
-        (1 + uis_var * (
-          mcmapply(function(i){
-            sum( - expect_cum_weibull_tvc_Rcpp(attributes(iu[[i]]$ev)$covered_ints$t_start,
-                                               lin_pred = iu[[i]]$X %*% coef,
-                                               t_breaks = iu[[i]]$cov_t$t_end,
-                                               k = k) +
-                   expect_cum_weibull_tvc_Rcpp(attributes(iu[[i]]$ev)$covered_ints$t_end,
-                                               lin_pred = iu[[i]]$X %*% coef,
-                                               t_breaks = iu[[i]]$cov_t$t_end,
-                                               k = k))
-          },1:length(iu), mc.cores = mc_cores)
-        )
-        )
-      uis <- ltrgamma(length(z_counts),shapes = shapes, scales = scales, truncate = 0.01)
-
-
-      # uis_var update
-      u_uis_var <- rnorm(1,mean = 0, sd = 1)
-      uis_var_ori <- uis_var
-      uis_var_pro <- (log(uis_var_ori) + S_uis_var * u_uis_var) |> exp()
-
-      log_lik_uis_var_ori <- log_lik_uis_var(uis, uis_var_ori) +
-        prior_dist_uis_var(uis_var_ori)
-      log_lik_uis_var_pro <- log_lik_uis_var(uis, uis_var_pro) +
-        prior_dist_uis_var(uis_var_pro)
-
-      acceptance_prob_uis_var <- min(1, exp((log_lik_uis_var_pro) - (log_lik_uis_var_ori)))
-
-      if (rbinom(1, 1, prob = acceptance_prob_uis_var)) {
-        uis_var <- uis_var_pro
-        accept["uis_var"] <- accept["uis_var"] + 1
-      }
-
-      if(iter <= n_burn_in){
-        S_uis_var <-  ramcmc::adapt_S(S_uis_var, u_uis_var, acceptance_prob_uis_var, iter - 1) |>  as.vector()
-      }
-
-
-      # k and coef update
-      kcoef.ori <- c(k, coef)
-      logkcoef.ori <- c(log(k), coef)
-      u.logkcoef <- rnorm(length(logkcoef.ori), 0, sd = 1)
-      logkcoef.pro <- logkcoef.ori + S.logkcoef %*% u.logkcoef
-      kcoef.pro <- c(exp(logkcoef.pro[1]), logkcoef.pro[-1])
-
-
-      # likelihood calculation preparation
-      z_counts.sum <- sum(z_counts)
-      log.z.sum <- sum(log(z_list |> unlist()))
-      XAllMatrix <- Xmatrix_lik(z_list, iu, mc_cores = mc_cores)
-
-      loglik.kcoef.ori <- event.times.loglik(k = kcoef.ori[1], coef = kcoef.ori[-1], uis = uis,
-                                             z_counts.sum = z_counts.sum, log.z.sum = log.z.sum,
-                                             XAllMatrix = XAllMatrix, iu = iu, mc_cores = mc_cores) +
-        prior_dist_k(kcoef.ori[1]) +
-        prior_dist_b(exp(kcoef.ori[2])) +
-        prior_dist_coef(kcoef.ori[-c(1,2)])
-
-
-
-      loglik.kcoef.pro <- event.times.loglik(k = kcoef.pro[1], coef = kcoef.pro[-1], uis = uis,
-                                             z_counts.sum = z_counts.sum, log.z.sum = log.z.sum,
-                                             XAllMatrix = XAllMatrix, iu = iu, mc_cores = mc_cores) +
-        prior_dist_k(kcoef.pro[1]) +
-        prior_dist_b(exp(kcoef.pro[2])) +
-        prior_dist_coef(kcoef.pro[-c(1,2)])
-
-      acceptance.prob.kcoef <- min(1, exp((loglik.kcoef.pro ) - (loglik.kcoef.ori )))
-
-      if(rbinom(1,1,prob = acceptance.prob.kcoef)) {
-        k <- kcoef.pro[1]
-        coef <- kcoef.pro[-1]
-        accept["kcoef"] <- accept["kcoef"] + 1
-      }
-
-      if(iter <= n_burn_in){
-        S.logkcoef <- ramcmc::adapt_S(S.logkcoef, u.logkcoef, acceptance.prob.kcoef, iter - 1)
-      }
-
-      ###  record the traces
-      trace[iter,] <- c(log(k), log(uis_var), coef)
-      if(run_and_save){
-        if(iter %% iter_per_save == 0){
-          print(iter)
-          save(list = ls(all.names = TRUE),
-               file = paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""))
-        }
-      }
-
-    }
-    not_finish <- FALSE
-  },
-  # warning=function(w){print(w)},
-  error=function(e){print(e)},
-  finally = {if(not_finish & run_and_save){
-    print(iter)
-    save(list = ls(all.names = TRUE),
-         file = paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""))
-  }})
-
-  if(inherits(we_catch, c("error","warning"))){
-    if(keep_going){
-      return(bicre_weibull_continue(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
-                                    seed, keep_going = keep_going))
-    }else{
-      stop(we_catch)
-    }
-  }else{
-    print("target number iterations reached")
-    return(list(trace = trace,
-                accept_rate = round(accept/n_iter, 2)))
-  }
-}
-
