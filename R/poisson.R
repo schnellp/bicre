@@ -15,6 +15,8 @@
 #' @examples
 #' expect_cum_weibull(4, 2, 3)
 #' expect_cum_weibull(4, k = 2, b = 1 / 3^2)
+#'
+#' @export
 expect_cum_weibull <- function(t,
                                shape = 1, scale = 1,
                                k = shape, b = scale^(-shape),
@@ -38,6 +40,8 @@ expect_cum_weibull <- function(t,
 #'
 #' @examples
 #' expect_cum_weibull_inverse(expect_cum_weibull(4, 2, 3))
+#'
+#' @export
 expect_cum_weibull_inverse <- function(m,
                                        shape = 1, scale = 1,
                                        k = shape, b = scale^(-shape),
@@ -211,6 +215,7 @@ expect_cum_weibull_tvc_inverse_Rcpp <- function(m,
 #' 2021.
 #' \link{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
 #'
+#' @export
 rpois_trunc <- function(n, lambda, min = 0, max = Inf,
                         parallel_draws = n * 2, max_tries = 1e3,
                         fail_mode = FALSE,
@@ -245,7 +250,7 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
         return(n)
       }
     }
-    
+
     if (fail_mode) {
       warning(paste("Maximum number of rejection sampler iterations reached.",
                     "Returning mode."))
