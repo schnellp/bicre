@@ -335,7 +335,7 @@ bicre <- function(formula, data_covariates, data_events,
         )
 
       if (truncate_uis) {
-        uis <- ltrgamma(length(z_counts), shape = shapes, scale = scales,
+        uis <- ltrgamma(length(z_counts), shapes = shapes, scales = scales,
                         truncate = truncate_uis)
       } else {
         uis <- rgamma(length(z_counts), shape = shapes, scale = scales)
@@ -539,7 +539,7 @@ bicre_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_going = FALS
         )
 
       if (truncate_uis) {
-        uis <- ltrgamma(length(z_counts), shape = shapes, scale = scales,
+        uis <- ltrgamma(length(z_counts), shapes = shapes, scales = scales,
                         truncate = truncate_uis)
       } else {
         uis <- rgamma(length(z_counts), shape = shapes, scale = scales)
