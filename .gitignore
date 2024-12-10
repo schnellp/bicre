@@ -3,3 +3,12 @@
 .Rdata
 .httr-oauth
 .DS_Store
+
+*.Rd
+*.rds
+*.o
+*.so
+*.history
+
+*.html
+vignettes/analysis-simulate_files/
