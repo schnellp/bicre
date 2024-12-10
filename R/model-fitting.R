@@ -57,7 +57,7 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 }
 
 
-#' @title Preprocess Data to derive special intervals and sets for \link{bicre_weibull}
+#' @title Preprocess Data to derive special intervals and sets for \link{bicre}
 #' @description This function is used to preprocess data to produce a list that
 #' can be directly used for MCMC iterations without further data processing.
 #' The produced list contains derived special intervals and sets from data observations
@@ -95,7 +95,7 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #' @param verbose Logical value. TRUE will print info on whether you are using tiny T-zones to process data and number of individuals
 #' processed in hundreds. FALSE will not print this info.
 #'
-#' @return An object of class \code{co_events_frame} that can be directly used to run the MCMC algorithm in \link{bicre_weibull}.
+#' @return An object of class \code{co_events_frame} that can be directly used to run the MCMC algorithm in \link{bicre}.
 #'         In addition to the components of the given \code{co_events} object (See \link{co_events}),
 #'         each list element has the following sub-elements:
 #'         \describe{
@@ -113,7 +113,7 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #'           2. \code{impute_unit_compound} -- Compound imputation-units and their derived special intervals and sets.}
 #'         }
 #' @export
-bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = NA,check_cov_cover_ev = TRUE,
+bicre_prepare <- function(formula, data_covariates, data_events, fill = NA,check_cov_cover_ev = TRUE,
                                   tiny_diff, prepare_style, verbose = FALSE){
   ce <- co_events(data_covariates, data_events,
                   id, t_start, t_end, e_min, e_max,
@@ -137,9 +137,9 @@ bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = 
 #' \eqn{\boldsymbol{x(t)}} is the covariates matrix, and \eqn{\boldsymbol{\beta}} is the covariates coefficient vector.
 #'
 # from \code{data_covariates} and \code{data_events} or the prerpocessed data \code{iu})
-# Although \link{bicre_weibull} already contain steps for preprocessing data,
+# Although \link{bicre} already contain steps for preprocessing data,
 # it is recommended to do this outside it so you don't need to rerun the preprocessing
-# every time you run  \link{bicre_weibull}.
+# every time you run  \link{bicre}.
 #'
 #' @param formula A formula with a format of ~ \eqn{A_1 + A_2 + \cdots + A_n} where \eqn{A_1, A_2, ..., A_n}
 #' are chosen column names of \code{data_covariates} representing user chosen predictors for the analysis.
@@ -225,7 +225,7 @@ bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = 
 #' Default to be equal to \code{iter_per_save}.
 #' @param save_folder The path to save the results when \code{iter_per_save} is TRUE. Otherwise this argument is ignored.
 #' @param mc_cores The number of cores to run on parallel for the algorithm. Default to 1. mc_cores > 1 is only avaliable for R on Linux or macOS.
-#' @param keep_going Logical. When there is errors, whether repeat the current iteration and continue use \link{bicre_weibull_continue}.
+#' @param keep_going Logical. When there is errors, whether repeat the current iteration and continue use \link{bicre_continue}.
 #'
 #'
 #' @return An list with two elements.
@@ -238,7 +238,7 @@ bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = 
 #' @export
 #'
 #'
-bicre_weibull <- function(formula, data_covariates, data_events,
+bicre <- function(formula, data_covariates, data_events,
                           id = id,
                           t_start = t_start,
                           t_end = t_end,
@@ -498,7 +498,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
 
   if(inherits(we_catch, c("error","warning"))){
     if(keep_going){
-      return(bicre_weibull_continue(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
+      return(bicre_continue(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
              seed, keep_going = keep_going))
     }else{
       stop(we_catch)
@@ -520,7 +520,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
 #' @param stop_file_dir The file path for the results from last unfinished run of the Bayesian data augmentation method.
 #' @param seed The seed to set for running the MCMC iteration.
 #' @param mc_cores The number of cores to run on parallel for the algorithm. Default to 1. mc_cores > 1 is only avaliable for R on Linux or macOS.
-#' @param keep_going Logical. When there is errors, whether repeat the current iteration and continue use this function \link{bicre_weibull_continue}.
+#' @param keep_going Logical. When there is errors, whether repeat the current iteration and continue use this function \link{bicre_continue}.
 #' @return An list with two elements.
 #'
 #' \describe{
@@ -528,7 +528,7 @@ bicre_weibull <- function(formula, data_covariates, data_events,
 #' \item{\code{accept_rate}}{A named vector lists the acceptance rates of k,b and \eqn{\boldsymbol{\beta}} and \eqn{\sigma^2};}
 #' }
 #' @export
-bicre_weibull_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_going = FALSE){
+bicre_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_going = FALSE){
   load(stop_file_dir, envir = environment())
   iter_current <- iter
   set.seed(seed)
@@ -702,7 +702,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc_cores = 1L, keep_goin
 
   if(inherits(we_catch, c("error","warning"))){
     if(keep_going){
-      return(bicre_weibull_continue(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
+      return(bicre_continue(paste(save_prefix, "_target_", n_iter, "seed_", seed, ".Rda", sep = ""),
                                     seed, keep_going = keep_going))
     }else{
       stop(we_catch)
