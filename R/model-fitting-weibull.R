@@ -250,7 +250,13 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
 #' @export
 #'
 #'
-bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cover_ev = TRUE,
+bicre_weibull <- function(formula, data.cov, data.obs,
+                          id = NULL,
+                          t_start = NULL,
+                          t_end = NULL,
+                          e_min = NULL,
+                          e_max = NULL,
+                          fill = NA, check_cov_cover_ev = TRUE,
                           n.burnin = 5000, n.keep = 10000,
                           prior_dist_k = log_normal_k,
                           prior_dist_b = log_normal_b,
@@ -259,11 +265,7 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
                           seed = 11374,
                           tiny_diff = NULL,
                           prepare_style = "normal",
-                          iu = co_events(data.cov, data.obs,
-                                         id, t_start, t_end, e_min, e_max,
-                                         fill, check_cov_cover_ev) |>
-                                        co_events_frame(formula = formula) |>
-                                        build_imputation_units(tiny_diff = tiny_diff, prepare_style = prepare_style),
+                          iu = NULL,
                           trace.start = list(k = 1,
                                              uis.var = 0.5,
                                              coef = rep(0,times = ncol(iu[[1]]$X))),
@@ -276,8 +278,8 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
                           save_folder = NULL,
                           mc.cores = 1L,
                           keep_going = FALSE){
-  #decisions on print and save iterations
 
+  # decisions on print and save iterations
   if(run_and_save){
     if(!is.null(save_folder)){
       dir.create(file.path(save_folder), showWarnings = FALSE, recursive = TRUE)
@@ -289,10 +291,35 @@ bicre_weibull <- function(formula, data.cov, data.obs, fill = NA, check_cov_cove
     if(iter_per_print == iter_per_save){
       run_and_print <- FALSE
     }
-
   }
 
 
+  # prepare imputation units if not provided
+  if (is.null(iu)) {
+    print("preparing co_events")
+    ce <- co_events(
+      data_covariates = data.cov,
+      data_events = data.obs,
+      id = {{ id }},
+      t_start = {{ t_start }},
+      t_end = {{ t_end }},
+      e_min = {{ e_min }},
+      e_max = {{ e_max }},
+      fill = fill,
+      check_cov_cover_ev = check_cov_cover_ev,
+      special_cols = c(
+        "id" = deparse(substitute(id)),
+        "t_start" = deparse(substitute(t_start)),
+        "t_end" = deparse(substitute(t_end)),
+        "e_min" = deparse(substitute(e_min)),
+        "e_max" = deparse(substitute(e_max))
+      ))
+    print(attributes(ce))
+    print("preparing co_events_frame")
+    cef <- co_events_frame(ce, formula = formula)
+    print("preparing imputation units")
+    iu <- build_imputation_units(cef, tiny_diff = tiny_diff, prepare_style = prepare_style)
+  }
 
 
   # preparation for MCMC

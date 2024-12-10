@@ -285,6 +285,8 @@ merge_interval_data <- function(data, new_data,
 #'              containing the maximum number of events in each interval.
 #' @param fill A named list specifying the value of each time-varying covariate
 #'             that should be used for newly added rows.
+#' @param special_cols (Internal) Override special_cols attribute;
+#'                     generally used by internal package functions only.
 #' @param check_cov_cover_ev Logical value whether to check covariate time range cover event time range.
 #'If TRUE, then check.  If there are  time intervals in event time range but not in covariate time range,
 #'fill this part of the covariate with what has been specified for the "fill" parameter.
@@ -314,7 +316,8 @@ merge_interval_data <- function(data, new_data,
 #' @export
 co_events <- function(data_covariates, data_events,
                       id, t_start, t_end, e_min, e_max,
-                      fill = NA, check_cov_cover_ev = TRUE) {
+                      fill = NA, check_cov_cover_ev = TRUE,
+                      special_cols = NULL) {
 
   # data_covariates$id <- as.character(data_covariates$id)
   data_covariates <- data_covariates |> mutate({{ id }} := as.character({{ id }}))
@@ -355,7 +358,7 @@ co_events <- function(data_covariates, data_events,
 
   # ignores IDs in data_events missing from data_covariates
   for (i in ids_covariates) {
-  # for (i in 1:length(ids_covariates)) {
+    # for (i in 1:length(ids_covariates)) {
     # make sure covariate intervals cover event intervals
     if(check_cov_cover_ev){
       #create new data frame only when necessary
@@ -400,13 +403,16 @@ co_events <- function(data_covariates, data_events,
 
   class(co_events) <- c(class(co_events), "co_events")
 
-  special_cols <- c(
-    "id" = deparse(substitute(id)),
-    "t_start" = deparse(substitute(t_start)),
-    "t_end" = deparse(substitute(t_end)),
-    "e_min" = deparse(substitute(e_min)),
-    "e_max" = deparse(substitute(e_max))
-  )
+  if (is.null(special_cols)) {
+    special_cols <- c(
+      "id" = deparse(substitute(id)),
+      "t_start" = deparse(substitute(t_start)),
+      "t_end" = deparse(substitute(t_end)),
+      "e_min" = deparse(substitute(e_min)),
+      "e_max" = deparse(substitute(e_max))
+    )
+  }
+
 
   attributes(co_events)$special_cols <- special_cols
 
