@@ -251,11 +251,11 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
 #'
 #'
 bicre_weibull <- function(formula, data.cov, data.obs,
-                          id = NULL,
-                          t_start = NULL,
-                          t_end = NULL,
-                          e_min = NULL,
-                          e_max = NULL,
+                          id = id,
+                          t_start = t_start,
+                          t_end = t_end,
+                          e_min = e_min,
+                          e_max = e_max,
                           fill = NA, check_cov_cover_ev = TRUE,
                           n.burnin = 5000, n.keep = 10000,
                           prior_dist_k = log_normal_k,
@@ -296,7 +296,6 @@ bicre_weibull <- function(formula, data.cov, data.obs,
 
   # prepare imputation units if not provided
   if (is.null(iu)) {
-    print("preparing co_events")
     ce <- co_events(
       data_covariates = data.cov,
       data_events = data.obs,
@@ -314,10 +313,7 @@ bicre_weibull <- function(formula, data.cov, data.obs,
         "e_min" = deparse(substitute(e_min)),
         "e_max" = deparse(substitute(e_max))
       ))
-    print(attributes(ce))
-    print("preparing co_events_frame")
     cef <- co_events_frame(ce, formula = formula)
-    print("preparing imputation units")
     iu <- build_imputation_units(cef, tiny_diff = tiny_diff, prepare_style = prepare_style)
   }
 
@@ -497,7 +493,6 @@ bicre_weibull <- function(formula, data.cov, data.obs,
     }
     not_finish <- FALSE
   },
-  # warning=function(w){print(w)},
   error=function(e){print(e)},
   finally = {      if(not_finish & run_and_save){
       print(iter)
