@@ -40,17 +40,17 @@ iu <- build_imputation_units(cef)
 
 test_that("imputation units built correctly", {
   expect_equal(
-    iu[[1]]$ev$impute_unit_compund[[2]]$unit_range$t_end,
+    iu[[1]]$ev$impute_unit_compound[[2]]$unit_range$t_end,
     55
   )
 
   expect_equal(
-    iu[[1]]$ev$impute_unit_compund[[2]]$round_leftover[[1]]$leftover$t_start,
+    iu[[1]]$ev$impute_unit_compound[[2]]$round_leftover[[1]]$leftover$t_start,
     46
   )
 
   expect_equal(
-    iu[[1]]$ev$impute_unit_compund[[2]]$round_leftover[[1]]$leftover$t_end,
+    iu[[1]]$ev$impute_unit_compound[[2]]$round_leftover[[1]]$leftover$t_end,
     50
   )
 })
