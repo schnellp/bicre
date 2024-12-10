@@ -22,20 +22,20 @@
 #'         "A", "A", "A", "A")
 #' )
 #'
-#' data_overlap_ints %>% collapse_interval_data(t_start, t_end)
+#' data_overlap_ints |> collapse_interval_data(t_start, t_end)
 #'
 #' @export
 collapse_interval_data <- function(data, t_start, t_end) {
-  data_collapsed <- data %>%
-    arrange({{ t_start }}) %>%
-    group_by(across(-c({{ t_start }}, {{ t_end }}))) %>%
+  data_collapsed <- data |>
+    arrange({{ t_start }}) |>
+    group_by(across(-c({{ t_start }}, {{ t_end }}))) |>
     mutate(.index = c(0,
                       cumsum(as.numeric(lead({{ t_start }})) >
-                               cummax(as.numeric({{ t_end }})))[-n()])) %>%
-    group_by(across(-c({{ t_start }}, {{ t_end }}))) %>%
+                               cummax(as.numeric({{ t_end }})))[-n()])) |>
+    group_by(across(-c({{ t_start }}, {{ t_end }}))) |>
     summarize({{ t_start }} := min({{ t_start }}),
               {{ t_end }} := max({{ t_end }}, na.rm = TRUE),
-              .groups = "drop") %>%
+              .groups = "drop") |>
     select(-.index)
 
   data_collapsed[, colnames(data_collapsed) %in% colnames(data)] <-
@@ -46,16 +46,16 @@ collapse_interval_data <- function(data, t_start, t_end) {
 complete_interval_data_single <- function(data, t_start, t_end,
                                           fill = NA, new_nodes = c()) {
 
-  var_names <- data %>%
-    select(-c({{ t_start }}, {{ t_end }})) %>%
+  var_names <- data |>
+    select(-c({{ t_start }}, {{ t_end }})) |>
     colnames()
 
 
-  nodes <- data %>%
-    select({{ t_start }}, {{ t_end }}) %>%
-    unlist() %>%
-    c(new_nodes) %>%
-    unique() %>%
+  nodes <- data |>
+    select({{ t_start }}, {{ t_end }}) |>
+    unlist() |>
+    c(new_nodes) |>
+    unique() |>
     sort()
 
   data_filled <- data.frame(
@@ -73,7 +73,7 @@ complete_interval_data_single <- function(data, t_start, t_end,
     }
 
     data_filled <-
-      data_filled %>%
+      data_filled |>
       mutate(!!sym(var_name) := fill_val)
 
 
@@ -81,7 +81,7 @@ complete_interval_data_single <- function(data, t_start, t_end,
       node_start <- nodes[j]
       node_end <- nodes[j + 1]
 
-      rows <- data %>%
+      rows <- data |>
         filter({{ t_start }} <= node_start, {{ t_end }} >= node_end)
 
       if (nrow(rows) == 1) {
@@ -125,17 +125,17 @@ complete_interval_data_single <- function(data, t_start, t_end,
 complete_interval_data <- function(data, id, t_start, t_end,
                                    fill = NA, new_nodes = c()) {
 
-  data_list <- data %>% split(f = data %>% select({{ id }}))
+  data_list <- data |> split(f = data |> select({{ id }}))
   data_filled_list <- list()
 
-  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+  ids <- data |> pull({{ id }}) |> unique() |> sort() |> as.character()
 
   for (i in ids) {
     id_fill_list <- list()
     id_fill_list[[deparse(substitute(id))]] <- i
 
     data_filled_list[[i]] <-
-      data_list[[i]] %>%
+      data_list[[i]] |>
       complete_interval_data_single(
         t_start = {{ t_start }},
         t_end = {{ t_end }},
@@ -153,29 +153,29 @@ merge_interval_data_single <- function(data, new_data,
                                        fill = NA) {
 
   nodes <- union(
-    data %>%
-      select(c({{ t_start }}, {{ t_end }})) %>%
+    data |>
+      select(c({{ t_start }}, {{ t_end }})) |>
       unlist(),
-    new_data %>%
-      select(c({{ t_start }}, {{ t_end }})) %>%
+    new_data |>
+      select(c({{ t_start }}, {{ t_end }})) |>
       unlist()
-  ) %>%
-    unique() %>%
+  ) |>
+    unique() |>
     sort()
 
-  temp_data <- new_data %>%
-    select(c({{ t_start }}, {{ t_end }}, {{ new_var }})) %>%
+  temp_data <- new_data |>
+    select(c({{ t_start }}, {{ t_end }}, {{ new_var }})) |>
     complete_interval_data_single(t_start = {{ t_start }},
                                   t_end = {{ t_end }},
                                   fill = fill,
                                   new_nodes = nodes)
 
-  merged_data <- data %>%
+  merged_data <- data |>
     complete_interval_data_single(t_start = {{ t_start }},
                                   t_end = {{ t_end }},
                                   fill = fill,
-                                  new_nodes = nodes) %>%
-    mutate({{ new_var }} := temp_data %>% pull({{ new_var }}))
+                                  new_nodes = nodes) |>
+    mutate({{ new_var }} := temp_data |> pull({{ new_var }}))
 
   merged_data
 }
@@ -206,12 +206,12 @@ merge_interval_data <- function(data, new_data,
                                 t_start, t_end, new_var,
                                 fill = NA) {
 
-  data_list <- data %>% split(f = data %>% select({{ id }}))
-  new_data_list <- new_data %>% split(f = new_data %>% select({{ id }}))
+  data_list <- data |> split(f = data |> select({{ id }}))
+  new_data_list <- new_data |> split(f = new_data |> select({{ id }}))
   data_merged_list <- list()
 
-  ids <- data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
-  new_ids <- new_data %>% pull({{ id }}) %>% unique() %>% sort() %>% as.character()
+  ids <- data |> pull({{ id }}) |> unique() |> sort() |> as.character()
+  new_ids <- new_data |> pull({{ id }}) |> unique() |> sort() |> as.character()
 
   if (!all(new_ids %in% ids)) {
     warning(paste("Ids in new_data missing from data and will be ignored:",
@@ -238,13 +238,13 @@ merge_interval_data <- function(data, new_data,
         fill_val <- fill[[var_name]]
       }
 
-      new_data_list[[i]] <- data_list[[i]] %>%
-        select({{ id }}, {{ t_start }}, {{ t_end }}) %>%
+      new_data_list[[i]] <- data_list[[i]] |>
+        select({{ id }}, {{ t_start }}, {{ t_end }}) |>
         mutate({{ new_var }} := fill[[var_name]])
     }
 
     data_merged_list[[i]] <-
-      data_list[[i]] %>%
+      data_list[[i]] |>
       merge_interval_data_single(
         new_data = new_data_list[[i]],
         t_start = {{ t_start }},
@@ -323,15 +323,15 @@ co_events <- function(data_covariates, data_events,
   data_covariates <- data_covariates |> mutate({{ id }} := as.character({{ id }}))
   # data_events$id <- as.character(data_events$id)
   data_events <- data_events |> mutate({{ id }} := as.character({{ id }}))
-  data_covariates <- data_covariates %>%
+  data_covariates <- data_covariates |>
     mutate(across(where(is.character), as.factor))
 
-  ids_covariates <- data_covariates %>%
-    pull({{ id }}) %>%
+  ids_covariates <- data_covariates |>
+    pull({{ id }}) |>
     unique()
 
-  ids_events <- data_events %>%
-    pull({{ id }}) %>%
+  ids_events <- data_events |>
+    pull({{ id }}) |>
     unique()
 
   if (!all(ids_events %in% ids_covariates)) {
@@ -342,11 +342,11 @@ co_events <- function(data_covariates, data_events,
 
   }
 
-  data_covariates_list <- data_covariates %>% select(!{{ id }}) %>%
-    split(f = data_covariates %>% select({{ id }}))
+  data_covariates_list <- data_covariates |> select(!{{ id }}) |>
+    split(f = data_covariates |> select({{ id }}))
 
-  data_events_list <- data_events %>% select(!{{ id }}) %>%
-    split(f = data_events %>% select({{ id }}))
+  data_events_list <- data_events |> select(!{{ id }}) |>
+    split(f = data_events |> select({{ id }}))
 
   for (i in names(data_events_list)) {
     data_events_list[[i]] <- data_events_list[[i]] |>
@@ -363,29 +363,29 @@ co_events <- function(data_covariates, data_events,
     if(check_cov_cover_ev){
       #create new data frame only when necessary
 
-      data_covariates_range <- data_covariates_list[[i]] %>%
-        select(c({{ t_start }}, {{ t_end }})) %>%
+      data_covariates_range <- data_covariates_list[[i]] |>
+        select(c({{ t_start }}, {{ t_end }})) |>
         collapse_interval_data({{ t_start }}, {{ t_end }})
 
 
-      covariate_nodes <- data_covariates_list[[i]] %>%
-        select(c({{ t_start }}, {{ t_end }})) %>%
-        unlist() %>%
+      covariate_nodes <- data_covariates_list[[i]] |>
+        select(c({{ t_start }}, {{ t_end }})) |>
+        unlist() |>
         unique()
 
-      event_nodes <- data_events_list[[i]] %>%
-        select(c({{ t_start }}, {{ t_end }})) %>%
-        unlist() %>%
+      event_nodes <- data_events_list[[i]] |>
+        select(c({{ t_start }}, {{ t_end }})) |>
+        unlist() |>
         unique()
 
       if(!(nrow(data_covariates_range) == 1 &
            min(covariate_nodes) <= min(event_nodes) &
            max(covariate_nodes) >= max(event_nodes))){
-        data_covariates_list[[i]] <- data_covariates_list[[i]] %>%
+        data_covariates_list[[i]] <- data_covariates_list[[i]] |>
           complete_interval_data_single({{ t_start }}, {{ t_end }},
                                         fill = fill,
                                         new_nodes = c(min(event_nodes, covariate_nodes),
-                                                      max(event_nodes, covariate_nodes))) %>%
+                                                      max(event_nodes, covariate_nodes))) |>
           mutate({{ id }} := as.character(i)) |>
           relocate({{ id }})
       }
