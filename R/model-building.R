@@ -49,8 +49,8 @@ co_events_frame <- function(co_events, formula, contrasts = NULL, ...) {
   ce_frame <- list()
   for (i in 1 : length(co_events)) {
     ce_frame[[i]] <- list()
-    ce_frame[[i]]$covariates <- co_events[[i]]$covariates %>% select(-any_of(c("id", "t_start", "t_end")))
-    ce_frame[[i]]$events <- co_events[[i]]$events %>% select(-any_of(c("id")))
+    ce_frame[[i]]$covariates <- co_events[[i]]$covariates %>% select(-any_of(attr(co_events, "special_cols")))
+    ce_frame[[i]]$events <- co_events[[i]]$events %>% select(-any_of(attr(co_events, "special_cols")["id"]))
     mf[["data"]] <- co_events[[i]]$covariates
     mfi <- eval(mf, envir = parent.frame())
     mt <- attr(mfi, "terms")
