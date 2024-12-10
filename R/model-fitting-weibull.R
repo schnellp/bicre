@@ -79,20 +79,20 @@ event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix
 #'
 #'
 #' @param formula A formula with a format of ~ \eqn{A_1 + A_2 + \cdots + A_n} where \eqn{A_1, A_2, ..., A_n}
-#' are chosen column names of \code{data.cov} representing user chosen predictors for the analysis.
-#'  E.g. if \code{data.cov} contain predictor column names "trt", "age", "gender"
-#' a formula of ~ trt + age means using "trt" and "age" column in the \code{data.cov} dataframe
+#' are chosen column names of \code{data_covariates} representing user chosen predictors for the analysis.
+#'  E.g. if \code{data_covariates} contain predictor column names "trt", "age", "gender"
+#' a formula of ~ trt + age means using "trt" and "age" column in the \code{data_covariates} dataframe
 #' as the predictor variables for preprocessing and MCMC algorithm.
-#' @param data.cov A dataframe containing information for covariates values in different time intervals.
+#' @param data_covariates A dataframe containing information for covariates values in different time intervals.
 #' The first column and the last two columns are named "id", "t_start", and "t_end".
 #' The other columns are covariate values.
 #' Each row represents individual "id"'s covariate values between time "t_start" and "t_end".
-#' E.g. if \code{data.cov} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
-#' The first row of \code{data.cov} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
+#' E.g. if \code{data_covariates} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
+#' The first row of \code{data_covariates} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
 #' and "age" of 30 between time 0 and time 10.
-#' @param data.obs A dataframe containing observations for the study outcome recurrent events.
-#' \code{data.obs} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
-#' Each row of \code{data.obs} is an observation representing that the recurrent event counts is between
+#' @param data_events A dataframe containing observations for the study outcome recurrent events.
+#' \code{data_events} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
+#' Each row of \code{data_events} is an observation representing that the recurrent event counts is between
 #'  "e_min" and "e_max" for the time interval ("e_min", "e_max"] for individual "id".
 #' @param fill A named list specifying the value of each time-varying covariate
 #'             that should be used for newly added rows. See \link{co_events}
@@ -115,7 +115,7 @@ event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix
 #'         \describe{
 #'           \item{\code{covariates}}{a data frame built from \code{covariates}
 #'           and the \code{formula} argument;}
-#'           \item{\code{events}}{a data frame built from \code{data.obs}
+#'           \item{\code{events}}{a data frame built from \code{data_events}
 #'           containing the data observations for each individual;}
 #'           \item{\code{cov_t}}{the \code{t_start} and \code{t_end}
 #'           columns of \code{covariates} with standardized variable
@@ -127,9 +127,9 @@ event.times.loglik <- function(k, coef, uis, z.counts.sum, log.z.sum, XAllMatrix
 #'           2. \code{impute_unit_compound} -- Compound imputation-units and their derived special intervals and sets.}
 #'         }
 #' @export
-bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_cov_cover_ev = TRUE,
+bicre_weibull_prepare <- function(formula, data_covariates, data_events, fill = NA,check_cov_cover_ev = TRUE,
                                   tiny_diff, prepare_style, verbose = FALSE){
-  ce <- co_events(data.cov, data.obs,
+  ce <- co_events(data_covariates, data_events,
                   id, t_start, t_end, e_min, e_max,
                   fill = fill, check_cov_cover_ev = check_cov_cover_ev)
 
@@ -150,25 +150,25 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
 #' Where \eqn{u_i} is the random effect, \eqn{bkt^{k-1}} is the Weibull baeline hazard,
 #' \eqn{\boldsymbol{x(t)}} is the covariates matrix, and \eqn{\boldsymbol{\beta}} is the covariates coefficient vector.
 #'
-# from \code{data.cov} and \code{data.obs} or the prerpocessed data \code{iu})
+# from \code{data_covariates} and \code{data_events} or the prerpocessed data \code{iu})
 # Although \link{bicre_weibull} already contain steps for preprocessing data,
 # it is recommended to do this outside it so you don't need to rerun the preprocessing
 # every time you run  \link{bicre_weibull}.
 #'
 #' @param formula A formula with a format of ~ \eqn{A_1 + A_2 + \cdots + A_n} where \eqn{A_1, A_2, ..., A_n}
-#' are chosen column names of \code{data.cov} representing user chosen predictors for the analysis.
-#'  E.g. if \code{data.cov} contain predictor column names "trt", "age", "gender"
-#' a formula of ~ trt + age means using "trt" and "age" column in the \code{data.cov} dataframe
-#' @param data.cov A dataframe containing information for covariates values in different time intervals.
+#' are chosen column names of \code{data_covariates} representing user chosen predictors for the analysis.
+#'  E.g. if \code{data_covariates} contain predictor column names "trt", "age", "gender"
+#' a formula of ~ trt + age means using "trt" and "age" column in the \code{data_covariates} dataframe
+#' @param data_covariates A dataframe containing information for covariates values in different time intervals.
 #' The first column and the last two columns are named "id", "t_start", and "t_end".
 #' The other columns are covariate values.
 #' Each row represents individual "id"'s covariate values between time "t_start" and "t_end".
-#' E.g. if \code{data.cov} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
-#' The first row of \code{data.cov} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
+#' E.g. if \code{data_covariates} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
+#' The first row of \code{data_covariates} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
 #' and "age" of 30 between time 0 and time 10.
-#' @param data.obs A dataframe containing observations for the study outcome recurrent events.
-#' \code{data.obs} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
-#' Each row of \code{data.obs} is an observation representing that the recurrent event counts is between
+#' @param data_events A dataframe containing observations for the study outcome recurrent events.
+#' \code{data_events} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
+#' Each row of \code{data_events} is an observation representing that the recurrent event counts is between
 #'  "e_min" and "e_max" for the time interval ("e_min", "e_max"] for individual "id".
 #' @param fill A named list specifying the value of each time-varying covariate
 #'             that should be used for newly added rows. See \link{co_events}
@@ -209,7 +209,7 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
 #' @param iu An object of class \code{co_events_frame} containing special intervals and sets for optimized rejection sampling.
 #' This object is derived using \link{birce_weibull_prepare} function.
 #' When this argument has been given a value, the following arguments are all ignored:
-#'  \code{data.cov}, \code{data.obs}, \code{fill}, \code{check_cov_cover_ev}, \code{formula}, \code{tiny_diff}, \code{prepare_style }
+#'  \code{data_covariates}, \code{data_events}, \code{fill}, \code{check_cov_cover_ev}, \code{formula}, \code{tiny_diff}, \code{prepare_style }
 #' Otherwise \code{iu}'s default value is calculated from these arguments.
 #' @param trace.start A list containing the starting values of parameters.
 #' This list has 3 elements named \code{k}, \code{uis.var}, and \code{coef}, they are seperately
@@ -250,7 +250,7 @@ bicre_weibull_prepare <- function(formula, data.cov, data.obs, fill = NA,check_c
 #' @export
 #'
 #'
-bicre_weibull <- function(formula, data.cov, data.obs,
+bicre_weibull <- function(formula, data_covariates, data_events,
                           id = id,
                           t_start = t_start,
                           t_end = t_end,
@@ -297,8 +297,8 @@ bicre_weibull <- function(formula, data.cov, data.obs,
   # prepare imputation units if not provided
   if (is.null(iu)) {
     ce <- co_events(
-      data_covariates = data.cov,
-      data_events = data.obs,
+      data_covariates = data_covariates,
+      data_events = data_events,
       id = {{ id }},
       t_start = {{ t_start }},
       t_end = {{ t_end }},
@@ -716,7 +716,7 @@ bicre_weibull_continue <- function(stop_file_dir, seed, mc.cores = 1L, keep_goin
 #' @title Bayesian imputation for censored recurrent events with weibull baseline hazard with left truncated gamma distribution for uis
 #'
 #' @export
-bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_cov_cover_ev = TRUE,
+bicre_weibull_ltgamma <- function(formula, data_covariates, data_events, fill = NA, check_cov_cover_ev = TRUE,
                           n.burnin = 5000, n.keep = 10000,
                           prior_dist_k = log_normal_k,
                           prior_dist_b = log_normal_b,
@@ -725,7 +725,7 @@ bicre_weibull_ltgamma <- function(formula, data.cov, data.obs, fill = NA, check_
                           seed = 11374,
                           tiny_diff = NULL,
                           prepare_style = "normal",
-                          iu = co_events(data.cov, data.obs,
+                          iu = co_events(data_covariates, data_events,
                                          id, t_start, t_end, e_min, e_max,
                                          fill, check_cov_cover_ev) |>
                             co_events_frame(formula = formula) |>
