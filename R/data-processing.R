@@ -42,7 +42,7 @@ collapse_interval_data <- function(data, t_start, t_end) {
     data_collapsed[, colnames(data)]
 }
 
-#' @title Single-id helper for \code{complete_interval_data}
+#  Single-id helper for complete_interval_data
 complete_interval_data_single <- function(data, t_start, t_end,
                                           fill = NA, new_nodes = c()) {
 
@@ -107,6 +107,7 @@ complete_interval_data_single <- function(data, t_start, t_end,
 #'              gaps between existing intervals.
 #'
 #' @param data A data frame.
+#' @param id The column in \code{data} storing the grouping ID.
 #' @param t_start The column in \code{data}
 #'                storing the start of each interval.
 #' @param t_end The column in \code{data}
@@ -147,7 +148,7 @@ complete_interval_data <- function(data, id, t_start, t_end,
   do.call(rbind.data.frame, data_filled_list)
 }
 
-#' @title Single-id helper for \code{merge_interval_data}
+# Single-id helper for merge_interval_data
 merge_interval_data_single <- function(data, new_data,
                                        t_start, t_end, new_var,
                                        fill = NA) {
@@ -188,6 +189,7 @@ merge_interval_data_single <- function(data, new_data,
 #'
 #' @param data A data frame.
 #' @param new_data A data frame containing the new variable to be merged.
+#' @param id The column in \code{data} indicating row groupings.
 #' @param t_start The column in \code{data} and \code{new_data}
 #'                storing the start of each interval.
 #' @param t_end The column in \code{data} and \code{new_data}

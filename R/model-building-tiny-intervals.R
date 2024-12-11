@@ -35,7 +35,10 @@ sim_FALSE_change <- function(e_sim_int, FALSE_inner_check){
   e_sim_int
 }
 
-tiny_interval_prepare <- function(compound_impute_unit, tiny_diff, length_rate_perc_prod = 0.10, rate_perc = 0.25){
+tiny_interval_prepare <- function(compound_impute_unit,
+                                  tiny_diff,
+                                  length_rate_perc_prod = 0.10,
+                                  rate_perc = 0.25){
   #First find inty interval that is hard to calculate.
   # any interval with emin not 0 could possible be that.
   # each interval can have multiple overlapping tiny intervals
@@ -495,10 +498,12 @@ compound_impute_unit_prepare_w_tiny_interval <- function(tiny_int_info, prepare_
 
 }
 
-seq_samp_prepare_ev_w_tiny_interval <- function(ev, tiny_diff, prepare_style, length_rate_perc_prod){
+seq_samp_prepare_ev_w_tiny_interval <- function(
+    ev, tiny_diff, prepare_style, length_rate_perc_prod){
+
   # partition by imputation unit
-  ev <- ev %>%
-    split(f = ev %>% select(unit))
+  ev <- ev |>
+    split(f = ev |> select(unit))
 
 
   impute_unit_ez <- list()
@@ -513,7 +518,9 @@ seq_samp_prepare_ev_w_tiny_interval <- function(ev, tiny_diff, prepare_style, le
       ez_index <- ez_index + 1
     }else{
       impute_unit_compound[[compound_index]] <-
-        compound_impute_unit_prepare_w_tiny_interval(tiny_interval_prepare(ev[[i]], tiny_diff, length_rate_perc_prod), prepare_style)
+        compound_impute_unit_prepare_w_tiny_interval(
+          tiny_interval_prepare(ev[[i]], tiny_diff, length_rate_perc_prod),
+          prepare_style)
       compound_index <- compound_index + 1
     }
 
@@ -549,8 +556,14 @@ seq_samp_prepare_ev_w_tiny_interval <- function(ev, tiny_diff, prepare_style, le
 
 
 
-#' build imputation units for a single id with tiny intervals
-#' @export
-build_imputation_units_single_w_tiny_interval <- function(ev, tiny_diff, prepare_style, length_rate_perc_prod){
-  ev %>% simplify_ev %>% partition_ev %>% seq_samp_prepare_ev_w_tiny_interval(tiny_diff, prepare_style, length_rate_perc_prod)
+# build imputation units for a single id with tiny intervals
+build_imputation_units_single_w_tiny_interval <- function(
+    ev, tiny_diff, prepare_style, length_rate_perc_prod){
+
+  ev |>
+    simplify_ev() |>
+    partition_ev() |>
+    seq_samp_prepare_ev_w_tiny_interval(tiny_diff,
+                                        prepare_style,
+                                        length_rate_perc_prod)
 }

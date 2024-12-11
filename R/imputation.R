@@ -185,7 +185,7 @@ round_leftover_impute <- function(round_leftover_unit,
   stop("round two imputations do not simulate a set of event times satisfying conditions with max tries: increase number of max tries ")
 }
 
-#' Sequential sampling for a compound inputation unit
+# Sequential sampling for a compound inputation unit
 sample_sequential <- function(imputation_unit,
                               expect_cum_FUN,
                               expect_cum_inverse_FUN,
@@ -330,8 +330,7 @@ sample_sequential_initialize <- function(imputation_unit,
 }
 
 
-#' impute events for a single patient
-#' @export
+# impute events for a single patient
 impute_single_id <- function(co_events_frame_single,
                              coef,
                              expect_cum_FUN,
@@ -391,9 +390,7 @@ impute_single_id <- function(co_events_frame_single,
   }
 }
 
-#' impute events for a single patient for getting proper first values
-#' @export
-
+# impute events for a single patient for getting proper first values
 impute_single_id_initialize <- function(co_events_frame_single,
                              coef,
                              expect_cum_FUN,

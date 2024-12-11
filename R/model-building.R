@@ -392,8 +392,7 @@ seq_samp_prepare_ev <- function(ev){
 }
 
 
-#' build imputation units for a single id without tiny intervals
-#' @export
+# build imputation units for a single id without tiny intervals
 build_imputation_units_single <- function(ev) {
   ev %>% simplify_ev %>% partition_ev %>% seq_samp_prepare_ev
 }
@@ -406,11 +405,38 @@ build_imputation_units_single <- function(ev) {
 #'              intervals on which the event history may be imputed
 #'              independently of all intervals outside of their union.
 #'
-#' @param ev The \code{ev} member of a \code{co_events_frame} object
+#' @param co_events_frame An object output from `co_events_frame()`
+#' @param tiny_diff The threshold for differentiate between T-zones of tiny length
+#'                  (tiny T-zones) and other T-zones. If a T-zone has a length
+#'                  smaller than tiny_diff, it is treated as a tiny T-zone for
+#'                  the preprocessing; otherwise it is treated as other T-zones.
+#' @param prepare_style The method used to rank non-tiny T-zones when determining
+#'                      the disjoint set of compound imputation-units.
+#'                      Available options are:
+#'                      \enumerate{
+#'                      \item "target_emin": order non-tiny T-zones by decreasing
+#'                            minimum count when they are chosen into the disjoint set.
+#'                            This is the default option since it is the fastest
+#'                            by our simulation study.
+#'                      \item "target_min": order T-zones by decreasing minimum
+#'                            count rate when they are chosen into the disjoint set.
+#'                      \item "target_max": order T-zones by increasing maximum
+#'                            count rate when they are chosen into the disjoint set.
+#'                      \item "normal": order T-zones by "t_start" when they are
+#'                            chosen into the disjoint set.
+#'                      }
+#' @param verbose Whether to print progress updates
+#' @param length_rate_perc_prod Tuning parameter comparing information density
+#'                              for very short intervals to that of longer intervals.
+#'                              Higher values more heavily prioritize imputation on
+#'                              very short intervals.
+#'
 #' @export
-
-
-build_imputation_units <- function(co_events_frame, tiny_diff = NULL, prepare_style = "normal", verbose = FALSE, length_rate_perc_prod = 0.1) {
+build_imputation_units <- function(co_events_frame,
+                                   tiny_diff = NULL,
+                                   prepare_style = "normal",
+                                   verbose = FALSE,
+                                   length_rate_perc_prod = 0.1) {
   if(is.null(tiny_diff)){
     if(verbose){
       print("Preprocessing WITHOUT tiny intervals")
@@ -418,7 +444,8 @@ build_imputation_units <- function(co_events_frame, tiny_diff = NULL, prepare_st
     for (i in 1 : length(co_events_frame)) {
       if(verbose){
         if(i %% 100 == 0)
-        print(paste("Now data preprocessing for individual ", i, " out of ",  length(co_events_frame), " total",sep = ""))
+        print(paste("Now data preprocessing for individual ", i, " out of ",
+                    length(co_events_frame), " total",sep = ""))
       }
       co_events_frame[[i]]$ev <- co_events_frame[[i]]$ev %>%
         build_imputation_units_single()
@@ -430,10 +457,14 @@ build_imputation_units <- function(co_events_frame, tiny_diff = NULL, prepare_st
     for (i in 1 : length(co_events_frame)) {
       if(verbose){
         if(i %% 100 == 0)
-        print(paste("Now data preprocessing for individual ", i, " out of ",  length(co_events_frame), " total",sep = ""))
+        print(paste("Now data preprocessing for individual ", i, " out of ",
+                    length(co_events_frame), " total",sep = ""))
       }
       co_events_frame[[i]]$ev <- co_events_frame[[i]]$ev %>%
-        build_imputation_units_single_w_tiny_interval(tiny_diff = tiny_diff, prepare_style = prepare_style, length_rate_perc_prod = length_rate_perc_prod)
+        build_imputation_units_single_w_tiny_interval(
+          tiny_diff = tiny_diff,
+          prepare_style = prepare_style,
+          length_rate_perc_prod = length_rate_perc_prod)
     }
   }
 

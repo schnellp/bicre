@@ -86,6 +86,16 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #' \code{data_events} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
 #' Each row of \code{data_events} is an observation representing that the recurrent event counts is between
 #'  "e_min" and "e_max" for the time interval ("e_min", "e_max"] for individual "id".
+#' @param id The name of the special `id` column in `data_covariates` and `data_events`.
+#'           See \link{co_events}.
+#' @param t_start The name of the special `t_start` column in `data_covariates` and `data_events`.
+#'                See \link{co_events}.
+#' @param t_end The name of the special `t_end` column in `data_covariates` and `data_events`.
+#'              See \link{co_events}.
+#' @param e_min The name of the special `e_min` column in `data_events`.
+#'                See \link{co_events}.
+#' @param e_max The name of the special `e_max` column in `data_events`.
+#'                See \link{co_events}.
 #' @param fill A named list specifying the value of each time-varying covariate
 #'             that should be used for newly added rows. See \link{co_events}
 #' @param check_cov_cover_ev Logical value whether to check covariate time range cover event time range.  See \link{co_events}
@@ -119,11 +129,6 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #' \item "target_max": order T-zones by increasing maximum count rate when they are chosen into the disjoint set.
 #' \item "normal": order T-zones by "t_start" when they are chosen into the disjoint set.
 #' }
-# "target_emin": order non-tiny T-zones by decreasing minimum count when they are chosen into the disjoint set.
-# This is the default option since it is the fastest by our simulation study.
-# "target_min": order T-zones by decreasing minimum count rate when they are chosen into the disjoint set.
-# "target_max": order T-zones by increasing maximum count rate when they are chosen into the disjoint set.
-# "normal": order T-zones by "t_start" when they are chosen into the disjoint set.
 #' @param iu An object of class \code{co_events_frame} containing special intervals and sets for optimized rejection sampling.
 #' This object is derived using \link{build_imputation_units} function.
 #' When this argument has been given a value, the following arguments are all ignored:

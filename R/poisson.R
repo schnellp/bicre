@@ -9,6 +9,8 @@
 #' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
 #' @param k Alternative parameterization (shape).
 #' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
 #'
 #' @return Expected cumulative event count at time \code{t}.
 #'
@@ -35,6 +37,8 @@ expect_cum_weibull <- function(t,
 #' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
 #' @param k Alternative parameterization (shape).
 #' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
 #'
 #' @return Time at which Weibull expected cumulative event count equals \code{m}.
 #'
@@ -67,6 +71,8 @@ expect_cum_weibull_inverse <- function(m,
 #' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
 #' @param k Alternative parameterization (shape).
 #' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
 #'
 #' @return Expected cumulative event count at time \code{t}.
 #'
@@ -102,6 +108,28 @@ expect_cum_weibull_tvc <- function(t,
 
 
 #' @title expect_cum_weibull_tvc written in Rcpp
+#'
+#' @description
+#' Expected cumulative event count
+#' given Weibull baseline expected cumulative event count and
+#' piecewise constant multiplicative factor exp(lin_pred).
+#'
+#' @param t Time at which to evaluate expected cumulative count.
+#' @param lin_pred Vector of log scaling factors on baseline expected
+#'                 cumulative event count function over intervals.
+#' @param t_breaks Vector of right (closed) endpoints of intervals
+#'                 over which lin_pred applies.
+#'                 Elements must be strictly increasing and at least one
+#'                 must be \code{>= t}.
+#' @param shape Shape of Weibull distribution, as in \code{stats::Weibull}.
+#' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
+#' @param k Alternative parameterization (shape).
+#' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
+#'
+#' @return Expected cumulative event count at time \code{t}.
+#'
 #' @export
 expect_cum_weibull_tvc_Rcpp <- function(t,
                                          lin_pred = 0,
@@ -131,6 +159,8 @@ expect_cum_weibull_tvc_Rcpp <- function(t,
 #' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
 #' @param k Alternative parameterization (shape).
 #' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
 #'
 #' @return Time at which Weibull expected cumulative event count equals \code{m}.
 #'
@@ -167,6 +197,28 @@ expect_cum_weibull_tvc_inverse <- function(m,
 }
 
 #' @title expect_cum_weibull_tvc_inverse written in Rcpp
+#'
+#' @description
+#' Inverse of expected cumulative event count
+#' given Weibull baseline expected cumulative event count and
+#' piecewise constant multiplicative factor exp(lin_pred).
+#'
+#' @param m Expected (mean) Weibull cumulative event count.
+#' @param lin_pred Vector of log scaling factors on baseline expected
+#'                 cumulative event count function over intervals.
+#' @param t_breaks Vector of right (closed) endpoints of intervals
+#'                 over which lin_pred applies.
+#'                 Elements must be strictly increasing and at least one
+#'                 must be \code{>= t}.
+#' @param shape Shape of Weibull distribution, as in \code{stats::Weibull}.
+#' @param scale Scale of Weibull distribution, as in \code{stats::Weibull}.
+#' @param k Alternative parameterization (shape).
+#' @param b Alternative parameterization (scale).
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
+#'
+#' @return Time at which Weibull expected cumulative event count equals \code{m}.
+#'
 #' @export
 expect_cum_weibull_tvc_inverse_Rcpp <- function(m,
                                                 lin_pred = 0,
@@ -196,6 +248,11 @@ expect_cum_weibull_tvc_inverse_Rcpp <- function(m,
 #' @param fail_mode Logical. If \code{max_tries} is exceeded, should the
 #'                  function return the mode (\code{floor(lambda)}) of the
 #'                  distribution (with a warning) rather than throwing an error?
+#' @param rejection_sampler Logical (default `FALSE`). Avoid specialized algorithm
+#'                          and use a simple rejection sampler instead. Available
+#'                          only for `n = 1`.
+#' @param ... Accepts other arguments; not currently used except
+#'            to prevent errors from e.g., simulate_nonhomog_inversion
 #'
 #' @details
 #' If \code{max < Inf} then \code{sample} is used to draw from the finite sample space.
@@ -213,7 +270,7 @@ expect_cum_weibull_tvc_inverse_Rcpp <- function(m,
 #' @references
 #' Geyer, CJ. "Lower-Truncated Poisson and Negative Binomial Distributions"
 #' 2021.
-#' \link{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
+#' \url{https://cran.r-project.org/web/packages/aster/vignettes/trunc.pdf}
 #'
 #' @export
 rpois_trunc <- function(n, lambda, min = 0, max = Inf,
@@ -309,6 +366,7 @@ rpois_trunc <- function(n, lambda, min = 0, max = Inf,
 #'                               Expected to be vectorized.
 #' @param count_min Minimum number of events.
 #' @param count_max Maximum number of events.
+#' @param sorted_times (Logical) Should times be sorted before returning?
 #' @param ... Additional arguments passed to \code{expect_cum_FUN} and
 #'            \code{expect_cum_inverse_FUN}
 #'
@@ -355,8 +413,8 @@ simulate_nonhomog_inversion <- function(t_start, t_end,
   expect_cum_inverse_FUN(z, ...)
 }
 
-#' @title Simulate non-homogeneous Poisson process via inversion with condition on
-#' multiple non-contiguous intervals
+# Simulate non-homogeneous Poisson process via inversion with condition on
+# multiple non-contiguous intervals
 simulate_nonhomog_inversion_multi_interval <- function(interval_df,
                                                        expect_cum_FUN, expect_cum_inverse_FUN,
                                                        count_min = 0, count_max = Inf,
