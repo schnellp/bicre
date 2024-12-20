@@ -2,9 +2,13 @@ Package: bicre
 Title: Bayesian Imputation for Censored Recurrent Events
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Xin", "Liu", role = c("aut"))
+    person("Patrick", "Schnell", email = "schnell.31@osu.edu", role = c("aut", "cre"))
+Description: Uses Bayesian data augmentation to fit a proportional hazards
+    Poisson model for recurrent events which are observed as censored event
+    counts within intervals which may overlap. A Weibull baseline hazard is
+    used, with piecewise constant time-varying covariates allowed.
+    Gamma-distributed frailty random effects are available.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -16,6 +20,3 @@ Imports: data.table, parallel, ramcmc, Rcpp, dplyr
 NeedsCompilation: yes
 VignetteBuilder: quarto
 LazyData: true
-Packaged: 2023-07-24 02:23:39 UTC; Xin
-Author: Xin Liu [aut, cre] (YOUR-ORCID-ID)
-Maintainer: Patrick M Schnell <schnell.31@osu.edu>
