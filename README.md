@@ -27,3 +27,11 @@ The vignette provides a simulated example of data formatting and model
 fitting. It may take a moment for the vignette to build (it includes
 some MCMC sampling), but it should finish within one minute on a modern
 laptop.
+
+## Documentation
+
+The vignette is accessible via:
+
+``` r
+utils::vignette("analysis-simulate", package = "bicre")
+```
