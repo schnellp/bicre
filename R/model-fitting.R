@@ -63,7 +63,7 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #' the recurrent events are from a Poisson process with the following intensity:
 #'
 #' \deqn{\lambda(t|u_i, \boldsymbol{x(t)}) = u_i \cdot bkt^{k-1} \cdot e^{\boldsymbol{x(t)\beta}}}
-#' Where \eqn{u_i} is the random effect, \eqn{bkt^{k-1}} is the Weibull baeline hazard,
+#' Where \eqn{u_i} is the random effect, \eqn{bkt^{k-1}} is the Weibull baseline hazard,
 #' \eqn{\boldsymbol{x(t)}} is the covariates matrix, and \eqn{\boldsymbol{\beta}} is the covariates coefficient vector.
 #'
 # from \code{data_covariates} and \code{data_events} or the prerpocessed data \code{iu})
@@ -76,16 +76,18 @@ event.times.loglik <- function(k, coef, uis, z_counts.sum, log.z.sum, XAllMatrix
 #'  E.g. if \code{data_covariates} contain predictor column names "trt", "age", "gender"
 #' a formula of ~ trt + age means using "trt" and "age" column in the \code{data_covariates} dataframe
 #' @param data_covariates A dataframe containing information for covariates values in different time intervals.
-#' The first column and the last two columns are named "id", "t_start", and "t_end".
+#' Unit ID, as well as interval start and end times, are specified by the
+#' \code{id}, \code{t_start}, and \code{t_end} arguments, respectively.
 #' The other columns are covariate values.
-#' Each row represents individual "id"'s covariate values between time "t_start" and "t_end".
-#' E.g. if \code{data_covariates} contains predictor columns "trt", "age" except for "id", "t_start", and "t_end" columns.
-#' The first row of \code{data_covariates} is 1, TRUE, 30, 0, 10. Then it means the individual with id 1 are have "trt" value 1
-#' and "age" of 30 between time 0 and time 10.
+#' Each row represents the covariate values of unit \code{id}
+#' within the interval between \code{t_start} and \code{t_end}.
 #' @param data_events A dataframe containing observations for the study outcome recurrent events.
-#' \code{data_events} has 5 columns with names respectively "id", "t_start", "t_end", "e_min", and "e_max".
-#' Each row of \code{data_events} is an observation representing that the recurrent event counts is between
-#'  "e_min" and "e_max" for the time interval ("e_min", "e_max"] for individual "id".
+#' In addition to the special columns shared by \code{data_covariates},
+#' minimum and maximum bounds on event counts within each interval are stored
+#' in the columns specified by \code{e_min} and \code{e_max}, respectively.
+#' Each row represents an observation that the recurrent event count in the
+#' interval between \code{t_start} and \code{t_end} is in
+#' (\code{e_min}, \code{e_max}] for unit \code{id}.
 #' @param id The name of the special `id` column in `data_covariates` and `data_events`.
 #'           See \link{co_events}.
 #' @param t_start The name of the special `t_start` column in `data_covariates` and `data_events`.
