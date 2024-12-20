@@ -1,6 +1,6 @@
 Package: bicre
 Title: Bayesian Imputation for Censored Recurrent Events
-Version: 0.0.0.9000
+Version: 1.0.0.0
 Authors@R: 
     person("Xin", "Liu", role = c("aut"))
     person("Patrick", "Schnell", email = "schnell.31@osu.edu", role = c("aut", "cre"))
