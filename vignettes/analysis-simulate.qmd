@@ -1,0 +1,155 @@
+---
+title: "Bayesian Imputation for Censored Recurrent Events"
+author: "Patrick M Schnell and Xin Liu"
+format: html
+
+vignette: >
+  %\VignetteIndexEntry{Data formatting and model fitting example}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+library(bicre)
+```
+
+## Data format
+
+```{r}
+data("data_sim")
+
+data_cov <- data_sim$data_cov
+data_events <- data_sim$data_events
+```
+
+The `data_sim` dataset is a 30-individual simulated dataset generated following the simulation study configuration in Liu & Schnell "Bayesian Data Augmentation for Recurrent Events Under Intermittent Assessment in Overlapping Intervals with Applications to EMR Data" using the "Baseline" scenario settings.
+It contains two data frames:
+
+  1. `data_events` which contains the censored recurrent event observations;
+  2. `data_cov` which contains time-dependent covariate data.
+  
+The names of these datasets are flexible, as long as they meet the formatting requirements described below.
+
+### Event data
+
+```{r}
+data_events |>
+  head()
+```
+  
+The columns of `data_events` are:
+
+  - `id`: A subject-level identifier which links data rows from the same subject within `data_events` and between `data_events` and `data_cov`;
+  - `t_start` and `t_end`: The start and end points of the interval represented by each row, open on the left, closed on the right.
+  - `e_min` and `e_max`: The minimum and maximum number of events that could have occurred within the interval (i.e., the inclusive endpoints of the censoring interval).
+  
+That is, each row records that individual `id` experienced a minimum of `e_min` and maximum of `e_max` events in the interval (`t_start`, `t_end`].
+
+The names of these variables are not currently flexible---`bicre` expects exactly these column names with the described meanings.
+Additional columns are allowed but ignored.
+
+### Covariate data
+
+```{r}
+data_cov |>
+  head()
+```
+
+Key columns of `data_cov`, which should be included in any dataset properly formatted for `bicre`, are:
+
+  - `id`: A subject-level identifier which links data rows from the same subject within `data_cov` and between `data_cov` and `data_events`;
+  - `t_start` and `t_end`: The start and end points of the interval represented by each row.
+
+The other variables (here `trt`, `age`, and `sex`) are covariates, which are assumed to be constant within each interval.
+There are no special naming requirements for these other variables.
+
+It is important that the intervals for each `id` partition the follow-up time for that individual, though that follow-up time need not be uninterrupted.
+Specifically, any time within an interval (`t_start`, `t_end`] given by a row of `data_events` must be included in exactly one interval (`t_start`, `t_end`] given by a row of `data_cov`.
+
+## Model fitting
+
+The primary function for model fitting is `bicre()`, which provides a formula interface but requires passing two datasets meeting the formatting requirements described above.
+The left-hand side of the formula is left empty, while the right-hand side should include the (possibly time-varying) covariates for the model.
+A model frame and design matrix is constructed from the formula via `stats::model.frame` and `stats::model.matrix`.
+
+By default, the function saves its progress periodically (by default, every 1000 iterations), though we suppress that behavior here by setting `run_and_save = FALSE`.
+Saving progress allows the sampler to be stopped and resumed later by `bicre_continue()`.
+Both `bicre()` and `bicre_continue()` have manual entries accessible via, e.g., `?bicre`, which include instructions for specifying priors.
+
+Below, we fit a model with main effects of `sex`, `age`, and `trt`, requesting 100 burn-in iterations and 1000 iterations to retain.
+All 1100 iterations are returned, but MCMC proposal distributions are updated only during burn-in.
+
+```{r fit-model}
+#| cache: false
+
+fit <- bicre( ~ sex + age + trt,
+              data_covariates = data_cov,
+              data_events = data_events,
+              n_burn_in = 10, n_keep = 100, seed = 0,
+              run_and_save = FALSE)
+```
+
+The resulting object includes a posterior trace matrix and proposal acceptance rates after burn-in.
+
+```{r}
+names(fit)
+dim(fit$trace)
+colnames(fit$trace)
+```
+
+```{r plot}
+plot(fit$trace[, "log(b)"])
+```
+
+## Data pre-processing
+
+The data as stored in `data_cov` and `data_events` require processing before use in the MCMC sampler.
+The `bicre()` function handles this processing automatically if used with the formula interface shown above.
+However, for large or complex datasets this processing can require substantial computation time, and it may be advisable to perform these steps before invoking `bicre()`, especially if fitting multiple models or debugging.
+
+Pre-processing proceeds in two major steps:
+
+  1. `co_events()` reorganizes the `data_cov` and `data_events` data frames into a list in which each element corresponds to an individual `id`, and contains `covariates` and `events` data frames specific to that individual;
+  2. `build_imputation_units()` partitions each individual's follow-up time into units for which event histories may be imputed independently of all other units.
+  
+```{r}
+ce <- co_events(data_covariates = data_cov,
+                data_events = data_events,
+                id = id,
+                t_start = t_start,
+                t_end = t_end,
+                e_min = e_min,
+                e_max = e_max)
+
+ce[[1]]
+```
+
+The `id` through `e_max` arguments indicate which columns in `data_covariates` and `data_events` should be treated as the special columns described in previous sections.
+
+The data frames from `co_events()` may then be converted to model frames by passing the result to `co_events_frame()` with the desired formula.
+
+```{r}
+cef <- co_events_frame(ce, formula = ~ sex + age + trt)
+
+cef[[1]]
+```
+
+Unless more control is desired, the result of `co_events_frame()` may be passed directly to `build_imputation_units()` without any other arguments.
+
+```{r}
+iu <- build_imputation_units(cef)
+```
+
+Then, the computed imputation units can replace the data arguments in `bicre()`.
+
+```{r}
+#| cache: false
+
+fit <- bicre(iu = iu,
+             n_burn_in = 10, n_keep = 100, seed = 0,
+             run_and_save = FALSE)
+```
+
+```{r}
+plot(fit$trace[, "log(b)"])
+```
