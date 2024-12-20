@@ -85,7 +85,7 @@ All 1100 iterations are returned, but MCMC proposal distributions are updated on
 fit <- bicre( ~ sex + age + trt,
               data_covariates = data_cov,
               data_events = data_events,
-              n_burn_in = 10, n_keep = 100, seed = 0,
+              n_burn_in = 100, n_keep = 1000, seed = 0,
               run_and_save = FALSE)
 ```
 
@@ -146,7 +146,7 @@ Then, the computed imputation units can replace the data arguments in `bicre()`.
 #| cache: false
 
 fit <- bicre(iu = iu,
-             n_burn_in = 10, n_keep = 100, seed = 0,
+             n_burn_in = 100, n_keep = 1000, seed = 0,
              run_and_save = FALSE)
 ```
 
