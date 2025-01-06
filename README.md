@@ -9,6 +9,12 @@
 
 Bayesian Imputation for Censored Recurrent Events.
 
+**Authors:** Xin Liu and Patrick M Schnell (maintainer)
+
+Based on Liu & Schnell, “Bayesian Data Augmentation for Recurrent Events
+Under Intermittent Assessment in Overlapping Intervals with Applications
+to EMR Data.” *The Annals of Applied Statistics* (forthcoming, 2025).
+
 Uses Bayesian data augmentation to fit a proportional hazards Poisson
 model for recurrent events which are observed as censored event counts
 within intervals which may overlap. A Weibull baseline hazard is used,
